@@ -32,6 +32,10 @@ export interface Game {
   sonic: SonicState
   /** 이번 런 경과 시간 (초) — 세션 길이 계측용 */
   timeSec: number
+  /** 뒤쫓는 위협의 앞머리 x (px) — 플레이어가 이보다 뒤면 잡혀서 죽는다 (BUILD 19) */
+  threatX: number
+  /** 사망 원인 — 추락(내가 놓친 것) / 잡힘(내가 지체한 것) */
+  cause: 'fall' | 'caught' | null
 }
 
 export interface SonicState {
@@ -135,6 +139,37 @@ export function createGame(seed: number): Game {
     continues: 0,
     sonic: createSonic(),
     timeSec: 0,
+    threatX: TUNING.startPos.x - TUNING.threat.headStartPx,
+    cause: null,
+  }
+}
+
+/** 위협 속도 (px/s) — 위협의 현재 x 기준: 1차 램프(rampX) + 사계절 한 바퀴마다 가속, 상한 */
+export function threatSpeedAt(x: number): number {
+  const th = TUNING.threat
+  const a = TUNING.anchor
+  const t = Math.min(1, Math.max(0, x) / a.rampX)
+  const cyclePx = TUNING.season.stepM * 4 * TUNING.pxPerMeter
+  const cycles = Math.max(0, x - a.rampX) / cyclePx
+  return Math.min(th.speedCap, th.speedMin + (th.speedMax - th.speedMin) * t + cycles * th.speedPerCycle)
+}
+
+/** 플레이어와 위협 사이 거리 (px, 클수록 안전). 위협이 꺼져 있으면 Infinity */
+export function threatGap(g: Game): number {
+  return TUNING.threat.enabled ? g.body.pos.x - g.threatX : Infinity
+}
+
+/** 위협 전진 + 고무줄 + 잡힘 판정. 찬스 멈춤(freeze) 중엔 호출하지 않는다 */
+function updateThreat(g: Game, dt: number): void {
+  const th = TUNING.threat
+  if (!th.enabled) return
+  g.threatX += threatSpeedAt(g.threatX) * dt
+  g.threatX = Math.max(g.threatX, g.body.pos.x - th.maxLeadPx)
+  if (g.body.pos.x <= g.threatX) {
+    g.phase = 'dead'
+    g.cause = 'caught'
+    g.holding = false
+    release(g.body)
   }
 }
 
@@ -199,6 +234,8 @@ export function continueRun(g: Game): boolean {
   g.continues += 1
   g.holding = false
   g.phase = 'playing'
+  g.cause = null
+  g.threatX = g.body.pos.x - TUNING.threat.headStartPx
   g.distancePx = Math.max(0, g.body.pos.x - TUNING.startPos.x)
   return true
 }
@@ -258,6 +295,7 @@ export function update(g: Game, dt: number): void {
     g.targetIdx = null
     updateDash(g, dt)
     g.distancePx = Math.max(0, g.body.pos.x - TUNING.startPos.x)
+    updateThreat(g, dt)
     return
   }
   if (g.sonic.freezeT > 0) {
@@ -308,7 +346,10 @@ export function update(g: Game, dt: number): void {
   }
   if (g.body.pos.y > TUNING.killY) {
     g.phase = 'dead'
+    g.cause = 'fall'
     g.holding = false
     release(g.body)
+    return
   }
+  updateThreat(g, dt)
 }

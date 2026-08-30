@@ -6,7 +6,7 @@
  * 문법: 굵은 외곽선(#1f3a2a)·평면 색·둥근 형태·흰 카드 + 오프셋 그림자. 웹폰트 없음.
  */
 import type { Game } from '../core/game'
-import { isChanceAnchor, meters, sonicInSweet, sonicMarker } from '../core/game'
+import { isChanceAnchor, meters, sonicInSweet, sonicMarker, threatGap } from '../core/game'
 import { seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
@@ -259,6 +259,9 @@ export class Renderer {
     if (so.chance && !this.wasChance) this.chanceAt = now
     this.wasChance = so.chance
 
+    // 뒤쫓는 폭풍 (BUILD 19) — 지나온 잎을 삼키며 따라온다. 플레이어 아래 층 (잡히는 순간 파편이 앞으로 튄다)
+    this.drawThreat(g, toX, s, h, now)
+
     // 플레이어 — 죽으면 파편으로 흩어진다. 대시 중엔 슈퍼 모드(1.5배·선글라스). 몸색·표정은 계절을 탄다
     if (!dead) {
       this.drawPlayer(px, py, (so.dashing ? 22 : 15) * s, s, g.body.vel.x, g.holding || so.dashing, so.dashing, pal, st, now)
@@ -269,6 +272,7 @@ export class Renderer {
 
     this.drawForeground(cam, w, h, u, pal)
     this.drawSnow(st, w, h, u, now)
+    if (!dead) this.drawThreatWarning(threatGap(g), w, h, u, now)
     this.drawHud(g, best, w, h, u, topInset, preset)
     if (!dead && so.armed && g.body.anchor) this.drawSonicGauge(g, w, u, topInset)
     if (!dead) this.drawChanceCallout(w, h, u, now)
@@ -1082,18 +1086,166 @@ export class Renderer {
 
   private startDeath(g: Game, now: number): DeathFx {
     const parts: Particle[] = []
+    const caught = g.cause === 'caught'
+    const y0 = caught ? g.body.pos.y : Math.min(g.body.pos.y, TUNING.killY)
     for (let i = 0; i < 24; i++) {
-      const a = Math.PI + Math.random() * Math.PI // 위쪽 반원으로 튄다
+      // 추락: 위쪽 반원으로 튄다 / 잡힘: 폭풍에 밀려 앞(오른쪽 위)으로 튄다
+      const a = caught ? -1.2 + Math.random() * 1.7 : Math.PI + Math.random() * Math.PI
       const sp = 220 + Math.random() * 520
       parts.push({
         x: g.body.pos.x,
-        y: Math.min(g.body.pos.y, TUNING.killY),
-        vx: Math.cos(a) * sp + g.body.vel.x * 0.25,
+        y: y0,
+        vx: Math.cos(a) * sp + (caught ? 260 : g.body.vel.x * 0.25),
         vy: Math.sin(a) * sp,
         r: 3 + Math.random() * 5,
       })
     }
-    return { t0: now, x: g.body.pos.x, y: Math.min(g.body.pos.y, TUNING.killY), parts, lastNow: now }
+    return { t0: now, x: g.body.pos.x, y: y0, parts, lastNow: now }
+  }
+
+  /**
+   * 뒤쫓는 폭풍 — 어둠 속 가시덩굴 벽. 앞머리가 파도치고 촉수가 앞으로 뻗으며 노란 눈이 깜빡인다.
+   * 월드 좌표: 화면 왼쪽 끝부터 threatX까지. 카툰 문법(굵은 외곽선·평면 색)을 지키되 색은 잉크 계열로만 —
+   * 피·붉은색 없이 "무서운 것"을 만든다 (GRAC 전체이용가)
+   */
+  private drawThreat(g: Game, toX: (x: number) => number, s: number, h: number, now: number): void {
+    if (!TUNING.threat.enabled) return
+    const ex = toX(g.threatX)
+    if (ex < -150 * s) return
+    const ctx = this.ctx
+    const t = now / 1000
+    const edgeAt = (y: number) => ex + (Math.sin(t * 5 + y * 0.012 / s) * 12 + Math.sin(t * 2.3 + y * 0.03 / s) * 8) * s
+
+    // 몸통 — 앞머리는 부드러운 파도
+    ctx.beginPath()
+    ctx.moveTo(-80, -80)
+    ctx.lineTo(edgeAt(-80), -80)
+    const N = 18
+    let px = edgeAt(-80)
+    let py = -80
+    for (let i = 1; i <= N; i++) {
+      const y = -80 + ((h + 160) * i) / N
+      const x = edgeAt(y)
+      ctx.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2)
+      px = x
+      py = y
+    }
+    ctx.lineTo(px, h + 80)
+    ctx.lineTo(-80, h + 80)
+    ctx.closePath()
+    const grad = ctx.createLinearGradient(ex - 320 * s, 0, ex, 0)
+    grad.addColorStop(0, '#142a1e')
+    grad.addColorStop(0.7, '#1f3a2a')
+    grad.addColorStop(1, '#2d5a3d')
+    ctx.fillStyle = grad
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 5 * s
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+
+    // 소용돌이 잎 — 앞머리 뒤에서 위로 감겨 올라간다
+    ctx.fillStyle = '#3f8a58'
+    for (let i = 0; i < 12; i++) {
+      const ph = t * (1.1 + (i % 3) * 0.3) + i * 0.9
+      const lx = ex - (30 + ((i * 61) % 170)) * s + Math.sin(ph) * 16 * s
+      const ly = (((i * 131) % 1000) / 1000) * h - ((t * 60 * (1 + (i % 2))) % h) + h
+      const ry = ((ly % h) + h) % h
+      ctx.save()
+      ctx.translate(lx, ry)
+      ctx.rotate(ph * 2)
+      ctx.beginPath()
+      ctx.ellipse(0, 0, 9 * s, 4.5 * s, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
+
+    // 촉수 — 앞머리에서 앞으로 뻗어 나와 흔들린다 (잡히기 전에 먼저 보이는 부분)
+    ctx.lineCap = 'round'
+    for (let k = 0; k < 6; k++) {
+      const by = h * (0.08 + k * 0.17)
+      const len = (70 + 45 * Math.sin(t * 2.6 + k * 1.7)) * s
+      const sway = Math.sin(t * 3.4 + k) * 28 * s
+      const bx = edgeAt(by) - 6 * s
+      ctx.beginPath()
+      ctx.moveTo(bx, by)
+      ctx.bezierCurveTo(bx + len * 0.4, by - sway * 0.3, bx + len * 0.7, by + sway, bx + len, by + sway * 0.6)
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 9 * s
+      ctx.stroke()
+      ctx.strokeStyle = '#2d5a3d'
+      ctx.lineWidth = 5 * s
+      ctx.stroke()
+      // 끝의 가시 잎
+      ctx.beginPath()
+      ctx.ellipse(bx + len, by + sway * 0.6, 8 * s, 4 * s, Math.atan2(sway * 0.6, len), 0, Math.PI * 2)
+      ctx.fillStyle = '#3f8a58'
+      ctx.fill()
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 2 * s
+      ctx.stroke()
+    }
+
+    // 눈 — 앞머리 바로 뒤에서 내다보는 노란 눈 세 쌍 (벽은 화면 왼쪽 126px 안에서만 보이므로 앞머리에 붙인다), 제각기 깜빡인다
+    const eyes = [
+      { dx: 34, y: 0.3, r: 9 },
+      { dx: 46, y: 0.55, r: 7 },
+      { dx: 30, y: 0.74, r: 8 },
+    ]
+    eyes.forEach((e, i) => {
+      const blink = (t * 0.8 + i * 0.37) % 2.6 < 0.14 ? 0.12 : 1
+      const cx = ex - e.dx * s + Math.sin(t * 1.3 + i) * 6 * s
+      const cy = h * e.y + Math.cos(t * 1.7 + i * 2) * 8 * s
+      for (const side of [-1, 1]) {
+        const x = cx + side * e.r * 1.4 * s
+        ctx.beginPath()
+        ctx.ellipse(x, cy, e.r * s, e.r * s * blink, 0, 0, Math.PI * 2)
+        ctx.fillStyle = COL.target
+        ctx.fill()
+        ctx.beginPath()
+        ctx.ellipse(x + side * e.r * 0.25 * s, cy, e.r * 0.45 * s, e.r * 0.55 * s * blink, 0, 0, Math.PI * 2)
+        ctx.fillStyle = COL.ink
+        ctx.fill()
+      }
+    })
+  }
+
+  /** 위협 경고 — 화면 밖에서 다가올 때 왼쪽 가장자리가 어두워지고 쉐브론이 맥동한다 (가까울수록 진하고 빠르게) */
+  private drawThreatWarning(gap: number, w: number, h: number, u: number, now: number): void {
+    if (!TUNING.threat.enabled || !Number.isFinite(gap)) return
+    const warnPx = 520
+    const k = clamp01(1 - gap / warnPx)
+    if (k <= 0) return
+    const ctx = this.ctx
+    const pulse = 0.6 + 0.4 * Math.sin(now / (260 - 170 * k))
+    const grad = ctx.createLinearGradient(0, 0, w * 0.4, 0)
+    grad.addColorStop(0, `rgba(31,58,42,${0.55 * k * pulse})`)
+    grad.addColorStop(1, 'rgba(31,58,42,0)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, w * 0.4, h)
+    // 쉐브론 »» — 위협이 오는 방향(오른쪽)으로. 벽 자체가 화면에 들어오면(gap<160) 중복이라 지운다
+    const chev = clamp01((gap - 60) / 100)
+    if (chev <= 0) return
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    for (let i = 0; i < 3; i++) {
+      const on = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(now / (220 - 140 * k) - i * 1.1))
+      const x = 16 * u + i * 18 * u
+      const y = h * 0.5
+      ctx.beginPath()
+      ctx.moveTo(x, y - 16 * u)
+      ctx.lineTo(x + 12 * u, y)
+      ctx.lineTo(x, y + 16 * u)
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 8 * u
+      ctx.globalAlpha = k * chev
+      ctx.stroke()
+      ctx.strokeStyle = COL.target
+      ctx.lineWidth = 4 * u
+      ctx.globalAlpha = k * chev * on
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
   }
 
   /** 추락 지점의 충격파 + 파편 (월드 좌표) */

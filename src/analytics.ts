@@ -76,7 +76,7 @@ export class Analytics {
   }
 
   /** 게임오버 — 판 전체를 요약하는 유일한 이벤트 */
-  gameOver(info: { score: number; isBest: boolean; continued: boolean; sonic?: number }, now: number): void {
+  gameOver(info: { score: number; isBest: boolean; continued: boolean; sonic?: number; cause?: string }, now: number): void {
     this.send('game_over', {
       score: info.score,
       score_band: scoreBand(info.score),
@@ -84,6 +84,8 @@ export class Analytics {
       is_best: info.isBest,
       continued: info.continued,
       sonic: info.sonic ?? 0,
+      // 추락(fall) vs 잡힘(caught) 비율 — 위협 속도 튜닝의 근거 (BUILD 19)
+      cause: info.cause ?? 'fall',
     })
     this.startedAt = 0
   }

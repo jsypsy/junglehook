@@ -144,3 +144,16 @@
   jitter 175는 각각 10~20% 앞당김
 - 결론: 세션 30~60초(D-001)를 만들려면 **시간 압박(강제 결정) 메커닉**이 필요 — 후보: 뒤쫓는 위협(계절 돌수록 빨라짐),
   잎이 N초 뒤 찢어짐(단, 보수 봇은 스스로 놓으므로 단독으론 부족), 계절별 사거리 축소(D-007 억울함 비용)
+
+
+## 2026-08-30 — BUILD 19 뒤쫓는 폭풍 (D-013)
+
+- 계측 결론("시간 압박 메커닉 필요")을 받아 뒤쫓는 위협 구현. core: `threatX`·`cause`·`threatSpeedAt`·`threatGap`,
+  `updateThreat`(전진·고무줄·잡힘), freeze 중 정지, 이어하기 시 재배치. 테스트 47개(위협 7 추가). 슈퍼 테스트 2개는
+  찬스 잎에 7.5초 매달려 위협에 잡히므로 그 테스트에서만 `threat.enabled=false`
+- 봇 계측 파일을 저장소에 남김: `src/core/sim-threat.test.ts` — `SIM=1 npx vitest run src/core/sim-threat.test.ts
+  --disable-console-intercept`. 결과는 D-013. 지난 세션 봇과 달리 "정점 뒤 누름"이라 무위협 θ=25°가 13.9m/s로
+  더 빠르다(지난 봇 8m/s) — 절대값보다 위협 유무의 차이를 본다
+- 렌더: `drawThreat`(월드, 플레이어 아래 층) + `drawThreatWarning`(화면, 전경 위). 크롬 검수: gap 240(경고만) ·
+  110(벽 진입) · 60(눈·촉수) · 잡힘 → 카드. 탭이 hidden이면 `__jgh.stepOnce`로 구동 (HANDOFF 참고)
+- 계측 `game_over.cause` 추가. 프리셋 `nothreat`·`chase2`. BUILD 19

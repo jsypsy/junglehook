@@ -1,10 +1,19 @@
-import { describe, expect, it } from 'vitest'
-import { continueRun, continuesLeft, createGame, isChanceAnchor, meters, press, releaseInput, selectTarget, sonicChanceAnchor, sonicInSweet, sonicMarker, update } from './game'
+import { afterEach, describe, expect, it } from 'vitest'
+import { continueRun, continuesLeft, createGame, isChanceAnchor, meters, press, releaseInput, selectTarget, sonicChanceAnchor, sonicInSweet, sonicMarker, threatGap, threatSpeedAt, update } from './game'
 import { TUNING } from './tuning'
 
 const STEP = 1 / 120
 
+/** 슈퍼 테스트는 찬스 잎에 7.5초 매달린다 — 위협(BUILD 19)에 잡히지 않게 끄고, 끝나면 복구 */
+const threatOff = () => {
+  ;(TUNING.threat as { enabled: boolean }).enabled = false
+}
+
 describe('game', () => {
+  afterEach(() => {
+    ;(TUNING.threat as { enabled: boolean }).enabled = true
+  })
+
   it('ready에서 press로 시작한다', () => {
     const g = createGame(1)
     expect(g.phase).toBe('ready')
@@ -110,6 +119,7 @@ describe('game', () => {
   })
 
   it('소닉 파워: 찬스 앵커에서만 충전 — 3바퀴 장착 → 게이지 → 직선 대시 후 일반 비행', () => {
+    threatOff()
     const g = createGame(3)
     press(g)
     // 일반 앵커에서는 아무리 돌아도 충전되지 않는다
@@ -164,6 +174,7 @@ describe('game', () => {
   })
 
   it('소닉 찬스: 게이지 밖에서 놓으면 발동 없이 그 계절 찬스가 소모된다', () => {
+    threatOff()
     const g = createGame(5)
     press(g)
     const idx = sonicChanceAnchor(g, 0)
@@ -182,5 +193,88 @@ describe('game', () => {
     expect(g.sonic.dashing).toBe(false)
     expect(g.sonic.chance).toBe(false)
     expect(isChanceAnchor(g, idx)).toBe(false)
+  })
+
+  describe('뒤쫓는 위협 (BUILD 19)', () => {
+    it('시작 시 headStartPx 뒤에서 출발하고 매 틱 전진한다', () => {
+      const g = createGame(1)
+      expect(threatGap(g)).toBeCloseTo(TUNING.threat.headStartPx, 5)
+      press(g)
+      const x0 = g.threatX
+      update(g, STEP)
+      expect(g.threatX).toBeGreaterThan(x0)
+      expect(g.threatX - x0).toBeCloseTo(threatSpeedAt(x0) * STEP, 3)
+    })
+
+    it('속도는 rampX까지 오르고 사계절 주기마다 더 붙되 상한을 넘지 않는다', () => {
+      const th = TUNING.threat
+      expect(threatSpeedAt(0)).toBe(th.speedMin)
+      expect(threatSpeedAt(TUNING.anchor.rampX)).toBeCloseTo(th.speedMax, 5)
+      const cycle = TUNING.season.stepM * 4 * TUNING.pxPerMeter
+      expect(threatSpeedAt(TUNING.anchor.rampX + cycle)).toBeCloseTo(th.speedMax + th.speedPerCycle, 5)
+      expect(threatSpeedAt(1e9)).toBe(th.speedCap)
+    })
+
+    it('플레이어보다 maxLeadPx 이상 뒤처지지 않는다 (고무줄)', () => {
+      const g = createGame(1)
+      press(g)
+      g.body.pos.x = 5000
+      update(g, STEP)
+      expect(threatGap(g)).toBeLessThanOrEqual(TUNING.threat.maxLeadPx + 1)
+    })
+
+    it('제자리에 매달려 있으면 잡혀서 죽고, 원인은 caught', () => {
+      const g = createGame(1)
+      press(g)
+      // 첫 잎에 걸린 채 중력·펌프를 꺼서 정지 — 위협만 다가온다
+      const a = g.field.anchors[0]!
+      g.body.pos = { x: a.x, y: a.y + 150 }
+      g.body.vel = { x: 0, y: 0 }
+      press(g)
+      const gravity = TUNING.gravity
+      const pump = TUNING.swingPump
+      ;(TUNING as { gravity: number }).gravity = 0
+      ;(TUNING as { swingPump: number }).swingPump = 0
+      try {
+        for (let i = 0; i < 120 * 10 && g.phase === 'playing'; i++) update(g, STEP)
+      } finally {
+        ;(TUNING as { gravity: number }).gravity = gravity
+        ;(TUNING as { swingPump: number }).swingPump = pump
+      }
+      expect(g.phase).toBe('dead')
+      expect(g.cause).toBe('caught')
+      expect(g.timeSec).toBeLessThan(5)
+    })
+
+    it('추락 사망의 원인은 fall', () => {
+      const g = createGame(1)
+      press(g)
+      for (let i = 0; i < 120 * 10 && g.phase === 'playing'; i++) update(g, STEP)
+      expect(g.cause).toBe('fall')
+    })
+
+    it('이어하기 뒤엔 위협이 다시 headStartPx 뒤로 밀린다', () => {
+      const g = createGame(1)
+      press(g)
+      for (let i = 0; i < 120 * 10 && g.phase === 'playing'; i++) update(g, STEP)
+      expect(continueRun(g)).toBe(true)
+      expect(g.cause).toBeNull()
+      expect(threatGap(g)).toBeCloseTo(TUNING.threat.headStartPx, 5)
+    })
+
+    it('enabled=false면 절대 잡히지 않는다 (?p=nothreat)', () => {
+      const th = TUNING.threat as { enabled: boolean }
+      th.enabled = false
+      try {
+        const g = createGame(1)
+        press(g)
+        g.body.pos.x = -5000
+        update(g, STEP)
+        expect(g.phase).toBe('playing')
+        expect(threatGap(g)).toBe(Infinity)
+      } finally {
+        th.enabled = true
+      }
+    })
   })
 })

@@ -62,6 +62,24 @@ export const TUNING = {
     /** 찬스 앵커에 로프가 걸린 순간 멈추는 시간 (s) — "소닉 찬스" 알림 */
     freezeSec: 0.45,
   },
+  /** 뒤쫓는 위협 (BUILD 19, 난이도 계측 결론): 간격·사거리 노브는 "높게 놓고 불확실하면 매달리는" 안전 전략을
+   *  못 죽인다(120초 0/10 사망). 세션 30~60초(D-001)를 만드는 건 시간 압박 — 뒤에서 쫓아오는 폭풍이
+   *  매달려 기다리는 시간을 비용으로 만든다. 속도는 1차 램프 + 사계절 주기 2차 램프(anchor와 같은 문법) */
+  threat: {
+    enabled: true,
+    /** 시작 시 플레이어보다 이만큼 뒤에서 출발 (px) — 첫 스윙 두세 번은 화면에 안 보인다 */
+    headStartPx: 600,
+    /** 속도 (px/s): 시작 → rampX 지점에서 최대. 안전 봇(35°)의 순항 8m/s=400px/s를 rampX 부근에서 넘어선다 */
+    speedMin: 300,
+    speedMax: 420,
+    /** 2차 램프: 사계절 한 바퀴(1000m)마다 +speedPerCycle, 상한 speedCap */
+    speedPerCycle: 40,
+    speedCap: 560,
+    /** 고무줄: 플레이어보다 이 이상 뒤처지지 않는다 (px) — 빨리 가도 여유가 무한히 쌓이지 않아 압박이 유지된다.
+     *  1000px = 300px/s 기준 3.3초 = 스윙 한 주기(≈2초) + 여유. 봇 계측(PROGRESS 2026-08-30)에서 760~1200은
+     *  생존 시간 차이가 거의 없었다 — 죽음은 3~4초 넘는 스톨(초근접 잎 잡고 제자리 회전)에서 난다 */
+    maxLeadPx: 1000,
+  },
   /** 거리 → 미터 환산 (px per m) */
   pxPerMeter: 50,
   /** 타깃 선택: 플레이어 기준 선호 지점 오프셋 (전방·위쪽 바이어스) */
@@ -106,6 +124,10 @@ export const PRESETS: Record<string, Partial<Record<keyof typeof TUNING, unknown
   /** BUILD 18 난이도 실험(`?p=hard`): 앵커가 더 빨리·더 넓게 벌어진다 (rampX 18000→11000, gapMax 300→330,
    *  jitterMax 130→165). "너무 쉽다" 피드백의 A/B용 — 기본값은 아직 그대로 */
   hard: { anchor: { ...TUNING.anchor, rampX: 11000, gapMax: 330, jitterMax: 165 } },
+  /** BUILD 19 A/B: 위협 없음 (BUILD 18과 동일한 규칙) */
+  nothreat: { threat: { ...TUNING.threat, enabled: false } },
+  /** BUILD 19 A/B: 더 빠른 위협 */
+  chase2: { threat: { ...TUNING.threat, speedMin: 340, speedMax: 480, speedPerCycle: 50, speedCap: 620, maxLeadPx: 800 } },
 }
 
 export function applyPreset(name: string | null): string | null {
