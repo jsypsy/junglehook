@@ -1,5 +1,6 @@
 /** 부트스트랩 — 고정 스텝 시뮬레이션 + 카메라 + 입력/렌더 연결 */
-import { createGame, meters, press, releaseInput, selectTarget, update } from './core/game'
+import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, update } from './core/game'
+import { Analytics } from './analytics'
 import { TUNING, applyPreset } from './core/tuning'
 import { bindPointer } from './input/pointer'
 import { createPlatform } from './platform'
@@ -15,6 +16,9 @@ const platform = createPlatform()
 const canvas = document.getElementById('game') as HTMLCanvasElement
 const ctx = canvas.getContext('2d')!
 const renderer = new Renderer(ctx)
+const analytics = new Analytics(platform)
+/** 리워드 광고 진행 중 — 버튼 잠금·"불러오는 중" 표시 */
+let adBusy = false
 
 // A/B 프리셋: ?p=b4 등 (tuning.ts PRESETS). 게임 생성 전에 적용
 const preset = applyPreset(new URLSearchParams(location.search).get('p'))
@@ -68,15 +72,41 @@ function restart(): void {
   bestSaved = false
   if (pendingBest > best) best = pendingBest
   renderer.resetTrail()
+  analytics.gameStart(false, performance.now())
+}
+
+/** 이어하기: 리워드 광고 → 보상이면 마지막 앵커에서 재출발. 광고 실패·미보상이면 카드에 남는다 */
+async function tryContinue(): Promise<void> {
+  if (adBusy || game.phase !== 'dead' || continuesLeft(game) <= 0) return
+  adBusy = true
+  let rewarded = false
+  try {
+    rewarded = (await platform.showRewardedAd('continue')).rewarded
+  } catch {
+    rewarded = false
+  }
+  analytics.adReward('continue', rewarded)
+  adBusy = false
+  if (!rewarded || game.phase !== 'dead') return
+  if (continueRun(game)) {
+    bestSaved = false
+    renderer.resetTrail()
+    last = performance.now() // 광고 동안 흐른 시간을 한 프레임에 몰아넣지 않는다
+    acc = 0
+  }
 }
 
 bindPointer(
   canvas,
-  () => {
+  (x, y) => {
     if (game.phase === 'dead') {
-      if (performance.now() - deadAt > RESTART_LOCK * 1000) restart()
+      if (performance.now() - deadAt < RESTART_LOCK * 1000) return
+      const hit = renderer.hitDeathButton(x, y)
+      if (hit === 'continue') void tryContinue()
+      else if (hit === 'retry' && !adBusy) restart()
       return
     }
+    if (game.phase === 'ready') analytics.gameStart(false, performance.now())
     press(game)
   },
   () => releaseInput(game),
@@ -103,12 +133,16 @@ function tick(now: number, dt: number): void {
       deadAt = now
       if (!bestSaved) {
         const m = meters(game)
-        if (m > best) {
+        const isBest = m > best
+        if (isBest) {
           saveBest(m)
           pendingBest = m
         }
         bestSaved = true
+        analytics.gameOver({ score: m, isBest, continued: game.continues > 0 }, now)
       }
+    } else {
+      analytics.tick(now, meters(game))
     }
   }
   // 카메라: 빠를수록 줌아웃(앞을 더 보여준다), 플레이어를 화면 32% 지점에, 부드럽게 추적
@@ -122,7 +156,11 @@ function tick(now: number, dt: number): void {
   const targetCam = game.body.pos.x - (w * 0.32) / s
   cam.x += (targetCam - cam.x) * Math.min(1, dt * 8)
   const insets = cancelHostTopInset(platform.safeArea(), screen.height, h)
-  renderer.draw(game, cam, best, w, h, insets.top, preset)
+  renderer.draw(game, cam, best, w, h, insets.top, preset, {
+    continuesLeft: continuesLeft(game),
+    maxContinues: TUNING.maxContinues,
+    adBusy,
+  })
 }
 
 async function boot(): Promise<void> {

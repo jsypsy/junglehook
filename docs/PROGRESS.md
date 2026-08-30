@@ -78,3 +78,10 @@
 - index.html 배경·theme-color #bfe8f5, apps-in-toss primaryColor #ff7f3f
 - 캡처 검증: 시작 2단계·스윙·고속·사망 3단계
 
+## 2026-08-30 — BUILD 9 이어하기 광고 루프 · 하루/계절 캔버스
+
+- 하루·계절·날씨 캔버스(D-010): 장면 9장 + 타임라인. 2차 점검 반영(새벽 halo). 앵커를 덩굴 고리로
+- BUILD 9: core `continueRun`/`continuesLeft`(maxContinues 2, continueSpawn), 입력에 좌표 전달,
+  결과 카드에 "광고 보고 이어하기 n/2" + "다시 하기" 버튼(히트테스트), 광고 흐름(adBusy), Analytics
+  연결(game_start·deep_play·game_over·ad_reward). 테스트 32개
+

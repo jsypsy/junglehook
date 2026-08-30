@@ -10,6 +10,20 @@ import { meters } from '../core/game'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
 
+/** 결과 카드가 필요로 하는 바깥 상태 */
+export interface DeathUi {
+  continuesLeft: number
+  maxContinues: number
+  adBusy: boolean
+}
+
+interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface Camera {
   x: number
   /** 1 = 기본. 작을수록 줌아웃 (화면 세로 중앙 기준) */
@@ -74,6 +88,8 @@ const CLOUDS = [
 export class Renderer {
   private trail: Array<{ x: number; y: number }> = []
   private death: DeathFx | null = null
+  /** 결과 카드 버튼 영역 (화면 px) — 보이는 동안만 채워진다 */
+  private deathButtons: { continue: Rect | null; retry: Rect | null } = { continue: null, retry: null }
 
   constructor(private readonly ctx: CanvasRenderingContext2D) {}
 
@@ -81,13 +97,33 @@ export class Renderer {
     this.trail.length = 0
   }
 
-  draw(g: Game, cam: Camera, best: number, w: number, h: number, topInset: number, preset: string | null = null): void {
+  /** 결과 카드의 버튼 히트테스트 (화면 px) */
+  hitDeathButton(x: number, y: number): 'continue' | 'retry' | null {
+    const inside = (r: Rect | null) => !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h
+    if (inside(this.deathButtons.continue)) return 'continue'
+    if (inside(this.deathButtons.retry)) return 'retry'
+    return null
+  }
+
+  draw(
+    g: Game,
+    cam: Camera,
+    best: number,
+    w: number,
+    h: number,
+    topInset: number,
+    preset: string | null = null,
+    ui: DeathUi = { continuesLeft: 0, maxContinues: 0, adBusy: false },
+  ): void {
     const ctx = this.ctx
     const u = h / TUNING.viewH // 화면 배율 (줌 무관) — 장식·HUD·카드
     const s = u * cam.zoom // 월드 배율 (줌 포함)
     const now = performance.now()
     if (g.phase === 'dead' && !this.death) this.death = this.startDeath(g, now)
-    if (g.phase !== 'dead') this.death = null
+    if (g.phase !== 'dead') {
+      this.death = null
+      this.deathButtons = { continue: null, retry: null }
+    }
     const dead = this.death
     const deadT = dead ? now - dead.t0 : 0
 
@@ -175,7 +211,7 @@ export class Renderer {
 
     this.drawForeground(cam, w, h, u)
     this.drawHud(g, best, w, h, u, topInset, preset)
-    if (dead) this.drawDeathCard(g, best, w, h, u, deadT)
+    if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
   }
 
   // ── 배경 ─────────────────────────────────────────────────────────
@@ -392,7 +428,7 @@ export class Renderer {
   }
 
   /** 결과 카드 — 플래시 → 스크림 → "끝" 별 배지 → 점수 카운트업 → 신기록/최고 → 재시작 */
-  private drawDeathCard(g: Game, best: number, w: number, h: number, u: number, deadT: number): void {
+  private drawDeathCard(g: Game, best: number, w: number, h: number, u: number, deadT: number, ui: DeathUi): void {
     const ctx = this.ctx
     if (deadT < 160) {
       ctx.fillStyle = `rgba(255,255,255,${0.45 * (1 - deadT / 160)})`
@@ -465,15 +501,55 @@ export class Renderer {
     }
     ctx.restore()
 
-    // 재시작 힌트
+    // 버튼: 이어하기(광고)가 남았으면 주황 주 버튼 + 흰 "다시 하기", 다 썼으면 "다시 하기"만 주황
     const hp = clamp01((deadT - 1500) / 300)
+    this.deathButtons = { continue: null, retry: null }
     if (hp > 0) {
       ctx.save()
       ctx.globalAlpha = hp
-      ctx.translate(cx, cardY + cardH + 46 * u)
-      const pulse = 1 + 0.03 * Math.sin(deadT / 260)
-      ctx.scale(pulse, pulse)
-      this.pill('탭해서 다시', 0, 0, `900 ${Math.round(17 * u)}px ${FONT}`, COL.player, '#ffffff', 34 * u, 4 * u, u, false, 46 * u)
+      const canContinue = ui.continuesLeft > 0
+      const btnW = 260 * u
+      const y1 = cardY + cardH + 44 * u
+      if (canContinue) {
+        const label = ui.adBusy ? '광고 불러오는 중…' : '광고 보고 이어하기'
+        const pulse = ui.adBusy ? 1 : 1 + 0.03 * Math.sin(deadT / 260)
+        ctx.save()
+        ctx.translate(cx, y1)
+        ctx.scale(pulse, pulse)
+        if (ui.adBusy) ctx.globalAlpha = hp * 0.7
+        this.chip(-btnW / 2, -26 * u, btnW, 52 * u, COL.player, 4 * u)
+        ctx.fillStyle = '#ffffff'
+        ctx.font = `900 ${Math.round(17 * u)}px ${FONT}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        const badge = `${ui.maxContinues - ui.continuesLeft + 1}/${ui.maxContinues}`
+        const labelW = ctx.measureText(label).width
+        const badgeW = 34 * u
+        const gap = 8 * u
+        const total = labelW + (ui.adBusy ? 0 : gap + badgeW)
+        ctx.fillText(label, -total / 2 + labelW / 2, 1 * u)
+        if (!ui.adBusy) {
+          const bx = -total / 2 + labelW + gap
+          this.chip(bx, -11 * u, badgeW, 22 * u, COL.target, 0)
+          ctx.fillStyle = COL.ink
+          ctx.font = `800 ${Math.round(12 * u)}px ${FONT}`
+          ctx.fillText(badge, bx + badgeW / 2, 1 * u)
+        }
+        ctx.textBaseline = 'alphabetic'
+        ctx.restore()
+        this.deathButtons.continue = { x: cx - btnW / 2, y: y1 - 26 * u, w: btnW, h: 52 * u }
+        const y2 = y1 + 62 * u
+        this.pill('다시 하기', cx, y2, `800 ${Math.round(15 * u)}px ${FONT}`, COL.card, COL.inkSoft, 30 * u, 0, u, true, 44 * u)
+        this.deathButtons.retry = { x: cx - 110 * u, y: y2 - 22 * u, w: 220 * u, h: 44 * u }
+      } else {
+        ctx.save()
+        ctx.translate(cx, y1)
+        const pulse = 1 + 0.03 * Math.sin(deadT / 260)
+        ctx.scale(pulse, pulse)
+        this.pill('다시 하기', 0, 0, `900 ${Math.round(17 * u)}px ${FONT}`, COL.player, '#ffffff', 34 * u, 4 * u, u, false, 50 * u)
+        ctx.restore()
+        this.deathButtons.retry = { x: cx - 110 * u, y: y1 - 25 * u, w: 220 * u, h: 50 * u }
+      }
       ctx.restore()
     }
   }

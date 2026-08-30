@@ -36,6 +36,10 @@ export const TUNING = {
   startVel: { x: 380, y: -120 },
   /** 카메라 줌아웃 — 속도 speedLo에서 1.0, speedHi에서 min까지 (빠를수록 앞을 더 보여준다) */
   camZoom: { speedLo: 600, speedHi: 1200, min: 0.78 },
+  /** 이어하기(리워드 광고) 판당 최대 횟수 — D-001 "1~2회 제한" */
+  maxContinues: 2,
+  /** 이어하기 재출발: 마지막으로 지나친 앵커 기준 오프셋과 초기 속도 — 정상 릴리스(+30°, 전방 위)와 같은 궤적 */
+  continueSpawn: { dx: 75, dy: 130, vx: 520, vy: -300 },
   /** 거리 → 미터 환산 (px per m) */
   pxPerMeter: 50,
   /** 타깃 선택: 플레이어 기준 선호 지점 오프셋 (전방·위쪽 바이어스) */

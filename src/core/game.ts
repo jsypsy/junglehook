@@ -24,6 +24,8 @@ export interface Game {
   /** 도달 최대 x (px) — 점수의 원천 */
   /** 현재 위치 기준 전진 거리 (px) — 뒤로 가면 줄어든다. 점수는 죽은 지점 기준 (과회전의 비용) */
   distancePx: number
+  /** 이번 판에 쓴 이어하기 횟수 */
+  continues: number
   /** 이번 런 경과 시간 (초) — 세션 길이 계측용 */
   timeSec: number
 }
@@ -38,6 +40,7 @@ export function createGame(seed: number): Game {
     holding: false,
     targetIdx: null,
     distancePx: 0,
+    continues: 0,
     timeSec: 0,
   }
 }
@@ -82,6 +85,29 @@ export function press(g: Game): void {
     return
   }
   if (g.phase === 'playing') g.holding = true
+}
+
+export function continuesLeft(g: Game): number {
+  return Math.max(0, TUNING.maxContinues - g.continues)
+}
+
+/**
+ * 이어하기 — 마지막으로 지나친 앵커 앞에서 정상 릴리스와 같은 궤적으로 다시 던져진다.
+ * 로프를 쥔 채 살리면 버튼 탭의 pointerup이 곧바로 놓아 버려 궤적이 운에 좌우된다 → 자유 비행으로 시작.
+ * 거리는 현재 위치 기준이라 살짝 줄어든 채 이어진다 (점수 규칙 그대로)
+ */
+export function continueRun(g: Game): boolean {
+  if (g.phase !== 'dead' || continuesLeft(g) <= 0) return false
+  const list = g.field.anchors
+  let base = list[0]!
+  for (const a of list) if (a.x <= g.body.pos.x && a.x >= base.x) base = a
+  const sp = TUNING.continueSpawn
+  g.body = createBody({ x: base.x + sp.dx, y: base.y + sp.dy }, { x: sp.vx, y: sp.vy })
+  g.continues += 1
+  g.holding = false
+  g.phase = 'playing'
+  g.distancePx = Math.max(0, g.body.pos.x - TUNING.startPos.x)
+  return true
 }
 
 export function releaseInput(g: Game): void {

@@ -3,34 +3,34 @@ _Last updated: 2026-08-30_
 
 ## 지금 상태
 
-**정글훅 — Phase 0 프로토타입 + 카툰 비주얼(BUILD 8). 실기기 판정 대기.**
+**정글훅 — 카툰 비주얼 + 이어하기 광고 루프(BUILD 9). 실기기 판정 대기.**
 
 ```
 컨셉       원버튼 그래플 스윙 (홀드=로프+감기+펌프, 릴리스=관성 발사). D-001, D-005, D-006
 이름       정글훅 / junglehook — 충돌 검색 완료. GRAC 제명은 신청 직전 재확인 (D-002)
-코드       BUILD 8 — 카툰 렌더러(D-008) + 충전기 물리(4s 홀드→360°)·`?p=b4` 프리셋·사망 연출·
-           시작 데모·reach 450 (D-006/7). 테스트 31개 통과. 번들 83KB(gzip 27KB)
+코드       BUILD 9 — 카툰 렌더러(D-008) + 이어하기 광고 루프(D-009, 판당 2회, 계측 연결) +
+           충전기 물리·`?p=b4`·사망 연출·시작 데모 (D-006/7). 테스트 32개
 실플레이   BUILD 1: 156m→206m(≈15s). 피드백은 전부 D-006/7에 반영됨. BUILD 8은 미판정
-콘솔       junglehook 등록됨 · 테스트 배포 2회 (최신 BUILD 8) — tools/latest-deployment.json
-디자인     밝은 카툰 정글 확정 (D-008) — 설계도 `design/`, 캔버스 링크는 design/README.md
-다음       BUILD 8 실기기 판정 → 튜닝 → Phase 1(이어하기 광고 루프·효과음·계측)
+콘솔       junglehook 등록됨 · 테스트 배포 2회 (최신 BUILD 8, B9는 미배포) — tools/latest-deployment.json
+디자인     밝은 카툰 정글 (D-008) + 하루·계절·날씨 (D-010, 구현 전) — 설계도 `design/`, 링크는 design/README.md
+다음       B9 배포·실기기 판정 → BUILD 10 하루·계절·날씨 + 덩굴 고리 앵커 → 효과음·점수 제출·뒤로가기 모달
 ```
 
 ## 다음 세션이 할 일
 
-1. **BUILD 8 실기기 판정** (배포된 상태, 폰 메시지의 링크로 열기). 볼 것:
-   - 카툰 비주얼: 토스 헤더 아래 749pt에서 HUD 칩·숲 띠 배치 / 캐릭터 얼굴 / **성능**
-     (구름·숲 물결을 매 프레임 path로 그림 — 프레임 떨어지면 오프스크린 캔버스 캐시)
-   - 손맛: 기본(충전기, 4초 홀드로 360°) vs `/?p=b4`(회전 없음) 5판씩. 회전이 "필살기"로
-     읽히는가 / 뒤로 돌아 거리 주는 비용이 납득되는가 / 죽음이 내 탓으로 느껴지는가 /
-     한 판 30~60초인가 (봇은 60초 전원 생존 → 쉬우면 gapMax·jitterMax↑)
-2. 튜닝 노브 (`src/core/tuning.ts`): rigidRope · swingPump 200 · swingMaxSpeed 1050 ·
-   minRope 130 · airDrag 0.2 · reach 450 · targetBehindLimit 120 · camZoom · rampX 18000.
-   B4 값은 PRESETS.b4. 계측은 `sim-observe.test.ts` `.skip` 떼고 `--disable-console-intercept`
-3. **Phase 1**: 이어하기 광고 루프(모달 설계도 `design/screens/Continue.dc.html`, 1~2회 제한,
-   사전 로딩·광고 중 mute — 플레이북 §3) · 효과음 교체(sound.ts) · 계측 이벤트(`jgh_`) ·
-   점수 제출·뒤로가기 확인 모달
-4. 검토 항목: 매달린 동안 "재누름 시 잡힐 앵커" 링 표시 (D-006 탈출로 가시화)
+1. **B9 테스트 배포 + 실기기 판정** (`ait:build → ait:deploy → ait:send`). 볼 것:
+   - 결과 카드의 "광고 보고 이어하기 n/2" — 토스에선 실제 리워드 광고가 뜨는지(AD_GROUP_ID 미설정이면
+     보상만 지급되는 폴백), 이어하기 뒤 재출발 궤적이 억울하지 않은지
+   - 카툰 비주얼: HUD 칩·숲 띠 배치 / 캐릭터 얼굴 / **성능**(구름·숲 물결 매 프레임 path)
+   - 손맛: 기본(충전기) vs `/?p=b4` 5판씩. 한 판 30~60초인가
+2. **BUILD 10 — 하루·계절·날씨 (D-010)**: `design/day-seasons/gen.py`의 SCENES 팔레트를 렌더러
+   상수로 옮기고 거리에 따라 oklch 보간. 달·별·안개·먹구름·빗줄기·눈송이(겨울은 갈수록 거세짐).
+   날씨는 판 시드(rng)로. 앵커를 **덩굴 고리**로 교체(카툰 캔버스·design/screens도 갱신)
+3. 튜닝 노브 (`src/core/tuning.ts`): rigidRope · swingPump 200 · swingMaxSpeed 1050 · minRope 130 ·
+   airDrag 0.2 · reach 450 · targetBehindLimit 120 · maxContinues 2 · continueSpawn · camZoom · rampX 18000
+4. Phase 1 잔여: 효과음 교체(sound.ts, 광고 중 mute) · 점수 제출(플레이 완료 후) · 뒤로가기 확인 모달 ·
+   내용설명서에 "이어하기 광고" 기재(D-004)
+5. 검토: 매달린 동안 "재누름 시 잡힐 앵커" 링 표시 (D-006 탈출로 가시화)
 
 ## 작업 도구 (이 세션에서 확립)
 

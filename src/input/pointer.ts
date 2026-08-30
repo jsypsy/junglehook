@@ -1,12 +1,13 @@
 /** 홀드/릴리스 단일 입력. 캔버스 전체가 버튼이다 */
 export function bindPointer(
   el: HTMLElement,
-  onPress: () => void,
+  onPress: (x: number, y: number) => void,
   onRelease: () => void,
 ): () => void {
   const down = (e: Event) => {
     e.preventDefault()
-    onPress()
+    const pe = e as PointerEvent
+    onPress(pe.clientX, pe.clientY)
   }
   const up = (e: Event) => {
     e.preventDefault()

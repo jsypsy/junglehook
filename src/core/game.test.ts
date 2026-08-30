@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createGame, meters, press, releaseInput, selectTarget, update } from './game'
+import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, update } from './game'
 import { TUNING } from './tuning'
 
 const STEP = 1 / 120
@@ -80,5 +80,32 @@ describe('game', () => {
     g.body.pos.x = 0
     update(g, 1 / 120)
     expect(meters(g)).toBe(0)
+  })
+
+  it('이어하기: 죽은 뒤 마지막 앵커 앞에서 재출발, 판당 maxContinues회', () => {
+    const g = createGame(7)
+    press(g)
+    // 아무것도 안 잡고 떨어져 죽는다
+    for (let i = 0; i < 120 * 5 && g.phase === 'playing'; i++) update(g, 1 / 120)
+    expect(g.phase).toBe('dead')
+    expect(continuesLeft(g)).toBe(TUNING.maxContinues)
+    const deadX = g.body.pos.x
+    expect(continueRun(g)).toBe(true)
+    expect(g.phase).toBe('playing')
+    expect(g.continues).toBe(1)
+    expect(g.body.anchor).toBeNull()
+    expect(g.body.vel.y).toBeLessThan(0) // 위로 던져진다
+    expect(g.body.pos.x).toBeLessThanOrEqual(deadX + TUNING.continueSpawn.dx)
+    expect(g.body.pos.y).toBeLessThan(TUNING.killY - 100)
+    // 살아 있는 동안은 거부
+    expect(continueRun(g)).toBe(false)
+    for (let n = 1; n < TUNING.maxContinues; n++) {
+      for (let i = 0; i < 120 * 5 && g.phase === 'playing'; i++) update(g, 1 / 120)
+      expect(continueRun(g)).toBe(true)
+    }
+    for (let i = 0; i < 120 * 5 && g.phase === 'playing'; i++) update(g, 1 / 120)
+    expect(g.phase).toBe('dead')
+    expect(continuesLeft(g)).toBe(0)
+    expect(continueRun(g)).toBe(false)
   })
 })
