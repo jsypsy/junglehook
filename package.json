@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "ait:build": "npm run build && ait build",
-    "ait:deploy": "node tools/deploy.mjs"
+    "ait:deploy": "node tools/deploy.mjs",
+    "ait:send": "node tools/imessage.mjs"
   },
   "devDependencies": {
     "qrcode": "^1.5.4",

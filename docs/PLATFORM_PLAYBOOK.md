@@ -59,6 +59,8 @@ npm run ait:deploy     # ait deploy 래퍼 (tools/deploy.mjs)
 
 - `tools/latest-deployment.json` — `intoss-private://<app>?_deploymentId=…`
 - `tools/deploy-qr.png` + **터미널에 QR 직접 출력** (폰 카메라로 맥 화면을 찍으면 끝)
+- `npm run ait:send` — 최신 배포 URL을 **내 아이메시지로 전송**(`tools/imessage.mjs`, macOS 메시지 앱
+  AppleScript). 폰 메시지에서 링크를 탭하면 토스가 열린다. 수신자 변경은 `JGH_IMESSAGE_TO`
 
 ⚠️ **파라미터 없는 `intoss-private://<app>`은 미출시 상태에서 거부된다**
 ("지금은 서비스를 사용할 수 없어요"). 반드시 `_deploymentId`가 붙은 전체 URL을
