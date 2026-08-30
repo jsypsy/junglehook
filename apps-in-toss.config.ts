@@ -8,8 +8,8 @@ import { defineConfig } from '@apps-in-toss/web-framework/config'
 export default defineConfig({
   appName: 'junglehook',
   brand: {
-    // 정글 그린 — 아트 방향 확정 시 팔레트와 함께 다시 정한다 (임시)
-    primaryColor: '#2FBF71',
+    // 밝은 카툰 정글 팔레트의 플레이어/버튼 색 (D-008)
+    primaryColor: '#ff7f3f',
   },
   permissions: [],
   webView: {

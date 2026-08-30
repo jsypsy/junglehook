@@ -6,4 +6,4 @@
  * "고쳤는데 그대로다"가 코드 문제인지 캐시 문제인지 이걸로 가른다.
  * 밸런스·조작에 영향 주는 변경마다 1씩 올린다.
  */
-export const BUILD = 7
+export const BUILD = 8
