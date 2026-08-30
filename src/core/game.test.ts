@@ -262,6 +262,31 @@ describe('game', () => {
       expect(threatGap(g)).toBeCloseTo(TUNING.threat.headStartPx, 5)
     })
 
+    it('찬스 잎에 매달려 충전하는 동안은 폭풍이 물러나 멈춘다 — 3바퀴 회전 중 잡히지 않는다 (BUILD 21)', () => {
+      const g = createGame(3)
+      press(g)
+      const idx = sonicChanceAnchor(g, 0)
+      const a = g.field.anchors[idx]!
+      g.body.pos = { x: a.x - 100, y: a.y + 150 }
+      g.body.vel = { x: 200, y: -50 }
+      // 폭풍을 코앞까지 붙여 둔다
+      g.threatX = g.body.pos.x - 30
+      press(g)
+      update(g, STEP)
+      expect(g.sonic.chance).toBe(true)
+      expect(a.x - g.threatX).toBeGreaterThanOrEqual(TUNING.threat.chanceBackPx)
+      const backX = g.threatX
+      // 회전 3바퀴 + 게이지 — 12초 동안 매달린다
+      let n = 0
+      while (g.sonic.chance && n++ < 120 * 12 && g.phase === 'playing') update(g, STEP)
+      expect(g.phase).toBe('playing')
+      expect(g.threatX).toBe(backX)
+      // 놓으면 다시 쫓아온다
+      releaseInput(g)
+      update(g, STEP)
+      expect(g.threatX).toBeGreaterThan(backX)
+    })
+
     it('enabled=false면 절대 잡히지 않는다 (?p=nothreat)', () => {
       const th = TUNING.threat as { enabled: boolean }
       th.enabled = false

@@ -327,7 +327,11 @@ export function update(g: Game, dt: number): void {
       // 방금 잡은 앵커가 이 계절의 찬스 앵커면 알림 + 충전 허용
       const idx = g.field.anchors.findIndex((a) => a.x === g.body.anchor!.x && a.y === g.body.anchor!.y)
       s.chance = idx >= 0 && isChanceAnchor(g, idx)
-      if (s.chance) s.freezeT = TUNING.sonic.freezeSec
+      if (s.chance) {
+        s.freezeT = TUNING.sonic.freezeSec
+        // 폭풍은 찬스에 놀라 물러난다 — 매달려 충전하는 동안(chance) 전진·잡힘 판정 모두 멈춘다 (BUILD 21)
+        g.threatX = Math.min(g.threatX, g.body.anchor.x - TUNING.threat.chanceBackPx)
+      }
     } else if (s.chance) {
       let d = swingAngle(g) - angBefore
       if (d > Math.PI) d -= Math.PI * 2
@@ -351,5 +355,6 @@ export function update(g: Game, dt: number): void {
     release(g.body)
     return
   }
-  updateThreat(g, dt)
+  // 찬스 잎에 매달린 동안은 폭풍이 멈춘다 — 3바퀴 충전이 고무줄 여유보다 길다
+  if (!s.chance) updateThreat(g, dt)
 }
