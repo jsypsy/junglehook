@@ -27,9 +27,11 @@ function runBot(seed: number, thetaDeg: number, maxSec: number, pressMode: 'apex
   for (let i = 0; i < 120 * maxSec && g.phase === 'playing'; i++) {
     const b = g.body
     if (g.sonic.pending) {
-      // 슈퍼 도전 대기(BUILD 24)는 떼었다 다시 눌러 넘긴다 (슈퍼는 loopsToArm=999로 꺼져 있어 곧 일반 릴리스)
-      releaseInput(g)
+      // 슈퍼 도전 대기(BUILD 24) — 눌러서 도전
       press(g)
+    } else if (b.anchor && g.sonic.chance) {
+      // 슈퍼는 loopsToArm=999로 꺼져 있다 → 한 바퀴 돌고 포기(찬스 소모, BUILD 26 규칙)해 일반 플레이로 돌아간다
+      if (g.sonic.loops >= 1) releaseInput(g)
     } else if (b.anchor) {
       const ang = Math.atan2(b.pos.x - b.anchor.x, b.pos.y - b.anchor.y)
       if (ang > theta && b.vel.y < 0) releaseInput(g)

@@ -409,7 +409,7 @@ export class Renderer {
     const t = now - this.pendingAt
     const pop = clamp01(t / 260)
     const pulse = 1 + 0.04 * Math.sin(now / 160)
-    const copy = '떼었다 다시 누르면 도전!'
+    const copy = '꾹 누르면 도전!'
     if (!ui.manual) {
       ctx.save()
       ctx.translate(w / 2, h * 0.5)
@@ -577,7 +577,7 @@ export class Renderer {
       ctx.globalAlpha = 1
     }
     this.drawFinger(fx, fy, u, pressed)
-    const copy = ['누른 채 3바퀴', '노란 구간에서 떼기!', '슈퍼 대시!'][stage]!
+    const copy = ['꾹 누른 채 3바퀴', '노란 구간에서 떼기!', '슈퍼 대시!'][stage]!
     this.pill(copy, d.x + d.w / 2, d.y + d.h - 62 * u, `800 ${Math.round(13 * u)}px ${FONT}`, COL.target, COL.ink, 10 * u, 0, u, true)
   }
 

@@ -56,6 +56,23 @@ export function skeleton(seed: number, depth: number): Skeleton {
   return sk
 }
 
+/** 뼈대 경계 (높이 1 기준): 가장 높은 마디 + 최대 잎덩어리 반지름, 좌우 반폭 */
+const boundsCache = new WeakMap<Skeleton, { top: number; halfW: number }>()
+function boundsOf(sk: Skeleton): { top: number; halfW: number } {
+  const hit = boundsCache.get(sk)
+  if (hit) return hit
+  let top = 0
+  let halfW = 0
+  for (const n of sk.nodes) {
+    const r = LOBE_R[Math.min(3, n.d)]! // 밀도 1일 때 반지름 — 가장 큰 경우
+    top = Math.max(top, -n.y + r)
+    halfW = Math.max(halfW, Math.abs(n.x) + r)
+  }
+  const out = { top, halfW }
+  boundsCache.set(sk, out)
+  return out
+}
+
 /** 굵기 버킷 (높이 1 기준 0.004 단위로 양자화) — 뼈대마다 한 번 만들어 캐시 */
 const bucketCache = new WeakMap<Skeleton, Array<[number, Seg[]]>>()
 function bucketsOf(sk: Skeleton): Array<[number, Seg[]]> {
@@ -205,8 +222,10 @@ export function drawTreeSprite(
   far: boolean,
 ): void {
   const scale = ctx.getTransform().a || 1
-  const W = Math.ceil(height * 1.5)
-  const H = Math.ceil(height * 1.2 + 8)
+  // 스프라이트 크기는 뼈대의 실제 경계에서 — 1.2×높이로 잡았더니 가지+잎덩어리 윗부분이 잘렸다 (BUILD 26)
+  const b = boundsOf(skeleton(seed, far ? 3 : 4))
+  const W = Math.ceil(height * (b.halfW + 0.05) * 2)
+  const H = Math.ceil(height * (b.top + 0.05) + 8)
   const key = `${seed}|${Math.round(height)}|${leaf.toFixed(2)}|${colors.trunk}|${colors.dark}|${colors.base}|${colors.hi}|${outline.toFixed(1)}|${far ? 1 : 0}|${scale}`
   let sp = sprites.get(key)
   if (!sp) {

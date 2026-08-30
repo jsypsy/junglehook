@@ -86,9 +86,11 @@ describe('game', () => {
     for (let i = 0; i < 120 * 30 && g.phase === 'playing'; i++) {
       const b = g.body
       if (g.sonic.pending) {
-        // 슈퍼 도전 대기(BUILD 24) — 사람처럼 떼었다 다시 눌러 도전한다
-        releaseInput(g)
+        // 슈퍼 도전 대기(BUILD 24) — 사람처럼 눌러 도전한다
         press(g)
+      } else if (b.anchor && g.sonic.chance) {
+        // 도전 중 — 장착되고 구간에 들어오면 놓는다 (한 바퀴 전에 놓으면 대기로 돌아가므로 끝까지 간다, BUILD 26)
+        if (g.sonic.armed && sonicInSweet(g)) releaseInput(g)
       } else if (b.anchor) {
         // 낮을수록 더 강하게 상승 중일 때만 놓는다 (고도 회복 우선)
         const need = b.pos.y > 380 ? -350 : -80
@@ -268,6 +270,52 @@ describe('game', () => {
       let n = 0
       while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, STEP)
       expect(g.sonic.armed).toBe(true)
+    })
+
+    it('3바퀴 전에 놓으면 찬스를 잃지 않고 도전 대기로 돌아간다 — 다시 누르면 회전 0부터 (BUILD 26)', () => {
+      threatOff()
+      const g = createGame(3)
+      press(g)
+      const k = sonicChanceK(g, 0)
+      for (let i = 0; i < k; i++) grabAnchor(g, i)
+      startChallenge(g)
+      // 반 바퀴쯤에서 놓는다 (한 바퀴 전)
+      let n = 0
+      while (Math.abs(g.sonic.spin) < Math.PI && n++ < 120 * 10) update(g, STEP)
+      expect(g.sonic.loops).toBe(0)
+      releaseInput(g)
+      expect(g.sonic.pending).toBe(true)
+      expect(g.sonic.chance).toBe(true)
+      expect(g.sonic.usedStage[0]).toBeUndefined()
+      expect(g.body.anchor).not.toBeNull()
+      expect(g.sonic.loops).toBe(0)
+      // 세상은 다시 멈춘다
+      const x = g.body.pos.x
+      for (let i = 0; i < 60; i++) update(g, STEP)
+      expect(g.body.pos.x).toBe(x)
+      // 다시 누르면 처음부터 — 이번엔 끝까지
+      press(g)
+      expect(g.sonic.pending).toBe(false)
+      n = 0
+      while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, STEP)
+      expect(g.sonic.armed).toBe(true)
+    })
+
+    it('한 바퀴 뒤에 놓으면 포기 — 찬스가 소모되고 일반 릴리스 (건너뛰는 길)', () => {
+      threatOff()
+      const g = createGame(3)
+      press(g)
+      const k = sonicChanceK(g, 0)
+      for (let i = 0; i < k; i++) grabAnchor(g, i)
+      startChallenge(g)
+      let n = 0
+      while (g.sonic.loops < 1 && n++ < 120 * 10) update(g, STEP)
+      expect(g.sonic.loops).toBe(1)
+      releaseInput(g)
+      expect(g.sonic.pending).toBe(false)
+      expect(g.sonic.chance).toBe(false)
+      expect(g.sonic.usedStage[0]).toBe(true)
+      expect(g.body.anchor).toBeNull()
     })
 
     it('게이지 성공 구간 중심은 찬스마다 시드 랜덤 (0.2~0.8), 계절마다 다를 수 있다', () => {

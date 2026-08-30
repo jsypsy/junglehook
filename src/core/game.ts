@@ -248,6 +248,14 @@ export function releaseInput(g: Game): void {
   const s = g.sonic
   // 도전 대기 중엔 놓아도 아무 일도 없다 — 찬스는 다시 누를 때까지 보존 (BUILD 24)
   if (s.pending) return
+  if (g.body.anchor && s.chance && !s.armed && s.loops < 1) {
+    // 한 바퀴도 못 돌고 놓았다 → 도전 대기로 돌아간다 (BUILD 26: 실수 탭이 찬스를 날리지 않게). 회전은 0부터.
+    // 한 바퀴 뒤에 놓는 건 "포기" — 찬스가 소모된다 (건너뛸 길은 남겨야 한다)
+    s.pending = true
+    s.spin = 0
+    s.loops = 0
+    return
+  }
   if (g.body.anchor && s.chance) {
     // 찬스 앵커를 놓는 순간 이 계절의 찬스는 끝 (성공이든 실패든)
     s.usedStage[stageOfX(g.body.anchor.x)] = true
