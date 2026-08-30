@@ -40,7 +40,9 @@ export function daysOf(metersNow: number): number {
   return Math.floor((Math.max(0, metersNow) * 365) / (TUNING.season.stepM * 4))
 }
 
-/** 일수 표기 — "N일" */
+/** 일수 표기 — 365일 미만 "N일", 그 뒤 "Y년 D일" (사용자 결정: 366일이 아니라 1년 1일) */
 export function dayLabel(days: number): string {
-  return `${days}일`
+  const d = Math.max(0, Math.floor(days))
+  if (d < 365) return `${d}일`
+  return `${Math.floor(d / 365)}년 ${d % 365}일`
 }

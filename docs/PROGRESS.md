@@ -193,3 +193,12 @@
 
 - 캔버스 더블탭에 iOS 텍스트 선택 루페가 뜸. index.html `-webkit-touch-callout: none` + pointer.ts touch 이벤트 non-passive
   preventDefault(+contextmenu·dblclick·gesturestart). 플레이북 §9에 기록. 실기기 확인은 다음 배포(B24)에서
+
+## 2026-08-30 — BUILD 24 슈퍼 도전 대기·매뉴얼 카드·게이지 랜덤 (D-016)
+
+- core: `sonic.pending`·`sweetCenter`, `press`가 대기 중 새 누름이면 도전 시작(히트스톱 중 무시), `releaseInput`은 대기 중
+  no-op, `update`는 대기 중 정지. `sonicSweetCenter(seed, stage)`. 테스트 51개(도전 대기 2 추가, 봇은 "대기면 떼었다
+  다시 누름")
+- 렌더: `drawSuperPrompt`(카드/배지) + `drawSuperDemo`(4.6초 루프) + 게이지 틀·마커를 헬퍼로 분리(sweetCenter 반영).
+  main: 매뉴얼 노출 횟수·"다시 안 보기" 히트. 크롬 검수: 카드·체크 토글·도전 시작 확인
+- `dayLabel` 365일↑ "Y년 D일". B24 = 위 + iOS 더블탭 수정. 배포

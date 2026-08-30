@@ -63,10 +63,14 @@ export interface SonicState {
   chance: boolean
   /** 찬스 앵커에 걸린 순간의 멈춤 (남은 초) */
   freezeT: number
+  /** 찬스가 터진 뒤 도전 대기 — 세상이 멈춘 채, 놓아도 찬스가 안 사라지고 **다시 누르면** 도전 시작 (BUILD 24) */
+  pending: boolean
+  /** 이번 찬스의 게이지 성공 구간 중심 (0~1) — 찬스마다 시드 랜덤 */
+  sweetCenter: number
 }
 
 export function createSonic(): SonicState {
-  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, grabsInStage: {}, lastGrabIdx: -1, usedStage: {}, chance: false, freezeT: 0 }
+  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, grabsInStage: {}, lastGrabIdx: -1, usedStage: {}, chance: false, freezeT: 0, pending: false, sweetCenter: 0.5 }
 }
 
 /** 계절 단계 번호 (거리 기준, season.stepM) */
@@ -90,9 +94,21 @@ export function sonicMarker(g: Game): number {
   return 1 - Math.abs(x - 1)
 }
 
-/** 지금 놓으면 발동하는가 — 마커가 가운데 성공 구간 안 */
+/** 지금 놓으면 발동하는가 — 마커가 이번 찬스의 성공 구간(sweetCenter ± sweetHalf) 안 */
 export function sonicInSweet(g: Game): boolean {
-  return Math.abs(sonicMarker(g) - 0.5) <= TUNING.sonic.sweetHalf
+  return Math.abs(sonicMarker(g) - g.sonic.sweetCenter) <= TUNING.sonic.sweetHalf
+}
+
+/** 도전 대기 중이고 히트스톱이 끝났다 — 렌더러가 매뉴얼 카드/배지를 띄우는 조건 */
+export function sonicPendingReady(g: Game): boolean {
+  return g.sonic.pending && g.sonic.freezeT <= 0
+}
+
+/** 이 계절 찬스의 게이지 성공 구간 중심 — 시드+단계 결정론 */
+export function sonicSweetCenter(g: Game, stage: number): number {
+  const { sweetFrom, sweetTo } = TUNING.sonic
+  const r = new Rng((g.seed ^ (stage * 7919 + 29)) >>> 0)
+  return r.range(sweetFrom, sweetTo)
 }
 
 /** 앵커 기준 각도 (아래 = 0, 앞쪽이 +) */
@@ -182,14 +198,23 @@ export function selectTarget(g: Game): number | null {
   return best
 }
 
-/** 누름 — ready면 시작, playing이면 홀드 시작. dead에서의 재시작은 호출부가 createGame으로 */
+/** 누름 — ready면 시작, playing이면 홀드 시작. 도전 대기(pending) 중의 새 누름은 도전 시작. dead에서의 재시작은 호출부가 createGame으로 */
 export function press(g: Game): void {
   if (g.phase === 'ready') {
     g.phase = 'playing'
     g.holding = false
     return
   }
-  if (g.phase === 'playing') g.holding = true
+  if (g.phase !== 'playing') return
+  const s = g.sonic
+  if (s.pending) {
+    // 히트스톱 동안의 누름은 무시 — 놀라서 두드린 손가락이 도전을 시작해 버리지 않게
+    if (s.freezeT > 0) return
+    s.pending = false
+    s.spin = 0
+    s.loops = 0
+  }
+  g.holding = true
 }
 
 export function continuesLeft(g: Game): number {
@@ -221,6 +246,8 @@ export function releaseInput(g: Game): void {
   g.holding = false
   if (g.phase !== 'playing') return
   const s = g.sonic
+  // 도전 대기 중엔 놓아도 아무 일도 없다 — 찬스는 다시 누를 때까지 보존 (BUILD 24)
+  if (s.pending) return
   if (g.body.anchor && s.chance) {
     // 찬스 앵커를 놓는 순간 이 계절의 찬스는 끝 (성공이든 실패든)
     s.usedStage[stageOfX(g.body.anchor.x)] = true
@@ -276,10 +303,12 @@ export function update(g: Game, dt: number): void {
     return
   }
   if (g.sonic.freezeT > 0) {
-    // 소닉 찬스 알림 — 세상이 잠깐 멈춘다 (입력은 그대로 받는다)
+    // 소닉 찬스 알림 — 세상이 잠깐 멈춘다
     g.sonic.freezeT = Math.max(0, g.sonic.freezeT - dt)
     return
   }
+  // 도전 대기 — 히트스톱이 끝나도 다시 누를 때까지 멈춘 채 (벽괴물도 chance 중이라 정지)
+  if (g.sonic.pending) return
   const hadAnchor = g.body.anchor
   const angBefore = swingAngle(g)
   g.targetIdx = g.body.anchor ? null : selectTarget(g)
@@ -311,6 +340,8 @@ export function update(g: Game, dt: number): void {
       s.chance = !s.usedStage[stage] && s.grabsInStage[stage] === sonicChanceK(g, stage)
       if (s.chance) {
         s.freezeT = TUNING.sonic.freezeSec
+        s.pending = true
+        s.sweetCenter = sonicSweetCenter(g, stage)
         // 폭풍은 찬스에 놀라 물러난다 — 매달려 충전하는 동안(chance) 전진·잡힘 판정 모두 멈춘다 (BUILD 21)
         g.threatX = Math.min(g.threatX, g.body.anchor.x - TUNING.threat.chanceBackPx)
       }

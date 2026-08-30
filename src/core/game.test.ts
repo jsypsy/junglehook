@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, sonicChanceK, sonicInSweet, sonicMarker, threatGap, threatSpeedAt, update } from './game'
+import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, sonicChanceK, sonicInSweet, sonicMarker, sonicPendingReady, sonicSweetCenter, threatGap, threatSpeedAt, update } from './game'
 import { TUNING } from './tuning'
 
 const STEP = 1 / 120
@@ -13,6 +13,16 @@ function grabAnchor(g: ReturnType<typeof createGame>, idx: number): void {
   press(g)
   update(g, STEP)
   expect(g.body.anchor).toEqual({ x: a.x, y: a.y })
+}
+
+/** 찬스가 터진 뒤 도전 시작 — 히트스톱이 끝날 때까지 기다렸다가 떼고 다시 누른다 (BUILD 24) */
+function startChallenge(g: ReturnType<typeof createGame>): void {
+  expect(g.sonic.pending).toBe(true)
+  for (let i = 0; i < 120 * 0.6; i++) update(g, STEP)
+  releaseInput(g)
+  press(g)
+  expect(g.sonic.pending).toBe(false)
+  expect(g.holding).toBe(true)
 }
 
 /** 슈퍼 테스트는 찬스 잎에 7.5초 매달린다 — 위협(BUILD 19)에 잡히지 않게 끄고, 끝나면 복구 */
@@ -75,7 +85,11 @@ describe('game', () => {
     press(g)
     for (let i = 0; i < 120 * 30 && g.phase === 'playing'; i++) {
       const b = g.body
-      if (b.anchor) {
+      if (g.sonic.pending) {
+        // 슈퍼 도전 대기(BUILD 24) — 사람처럼 떼었다 다시 눌러 도전한다
+        releaseInput(g)
+        press(g)
+      } else if (b.anchor) {
         // 낮을수록 더 강하게 상승 중일 때만 놓는다 (고도 회복 우선)
         const need = b.pos.y > 380 ? -350 : -80
         if (b.pos.x > b.anchor.x && b.vel.y < need && b.vel.x > 150) releaseInput(g)
@@ -154,13 +168,15 @@ describe('game', () => {
       grabAnchor(g, next++)
       expect(g.sonic.chance).toBe(false)
     }
-    // k번째 → 멈춤(알림) 후 충전 시작
+    // k번째 → 멈춤(알림) → 도전 대기 → 떼었다 다시 누르면 충전 시작
     grabAnchor(g, next)
     expect(g.sonic.chance).toBe(true)
     expect(g.sonic.freezeT).toBeGreaterThan(0)
+    expect(g.sonic.pending).toBe(true)
     const frozenX = g.body.pos.x
     for (let i = 0; i < 120 * 0.3; i++) update(g, 1 / 120)
     expect(g.body.pos.x).toBe(frozenX) // 멈춤 동안 물리 정지
+    startChallenge(g)
     let n = 0
     while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, 1 / 120)
     expect(g.sonic.armed).toBe(true)
@@ -169,8 +185,17 @@ describe('game', () => {
     expect(sonicMarker(g)).toBe(0)
     g.sonic.gaugeT = 0.5 / TUNING.sonic.gaugeHz
     expect(sonicMarker(g)).toBeCloseTo(1)
-    g.sonic.gaugeT = 0.25 / TUNING.sonic.gaugeHz // 한가운데
+    // 성공 구간은 찬스마다 시드 랜덤 중심 — 마커를 그 중심에 맞춘다 (삼각파 상승 구간: marker = 2·gaugeHz·t)
+    const c = g.sonic.sweetCenter
+    expect(c).toBeGreaterThanOrEqual(TUNING.sonic.sweetFrom)
+    expect(c).toBeLessThanOrEqual(TUNING.sonic.sweetTo)
+    expect(sonicSweetCenter(g, 0)).toBe(c)
+    g.sonic.gaugeT = c / (2 * TUNING.sonic.gaugeHz)
+    expect(sonicMarker(g)).toBeCloseTo(c)
     expect(sonicInSweet(g)).toBe(true)
+    g.sonic.gaugeT = (c > 0.5 ? 0.05 : 0.95) / (2 * TUNING.sonic.gaugeHz) // 반대편 끝
+    expect(sonicInSweet(g)).toBe(false)
+    g.sonic.gaugeT = c / (2 * TUNING.sonic.gaugeHz)
     const x0 = g.body.pos.x
     releaseInput(g)
     expect(g.sonic.dashing).toBe(true)
@@ -196,9 +221,10 @@ describe('game', () => {
     const k = sonicChanceK(g, 0)
     for (let i = 0; i < k; i++) grabAnchor(g, i)
     expect(g.sonic.chance).toBe(true)
+    startChallenge(g)
     let n = 0
     while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, 1 / 120)
-    g.sonic.gaugeT = 0
+    g.sonic.gaugeT = (g.sonic.sweetCenter > 0.5 ? 0.02 : 0.98) / (2 * TUNING.sonic.gaugeHz) // 구간 반대편
     expect(sonicInSweet(g)).toBe(false)
     releaseInput(g)
     expect(g.sonic.dashing).toBe(false)
@@ -207,6 +233,53 @@ describe('game', () => {
     grabAnchor(g, k)
     grabAnchor(g, k + 1)
     expect(g.sonic.chance).toBe(false)
+  })
+
+  describe('슈퍼 도전 대기 (BUILD 24)', () => {
+    it('찬스가 터지면 멈춘 채 대기 — 놓아도 찬스가 안 사라지고, 히트스톱 중 누름은 무시, 그 뒤 누르면 도전 시작', () => {
+      threatOff()
+      const g = createGame(3)
+      press(g)
+      const k = sonicChanceK(g, 0)
+      for (let i = 0; i < k; i++) grabAnchor(g, i)
+      expect(g.sonic.pending).toBe(true)
+      expect(sonicPendingReady(g)).toBe(false) // 히트스톱 중
+      // 놀라서 손을 뗐다
+      releaseInput(g)
+      expect(g.sonic.chance).toBe(true)
+      expect(g.sonic.pending).toBe(true)
+      expect(g.body.anchor).not.toBeNull()
+      // 히트스톱 중의 누름은 무시
+      press(g)
+      expect(g.sonic.pending).toBe(true)
+      expect(g.holding).toBe(false)
+      // 히트스톱이 끝나도 세상은 멈춘 채
+      for (let i = 0; i < 120 * 3; i++) update(g, STEP)
+      expect(sonicPendingReady(g)).toBe(true)
+      expect(g.timeSec).toBeGreaterThan(0)
+      const x = g.body.pos.x
+      for (let i = 0; i < 120; i++) update(g, STEP)
+      expect(g.body.pos.x).toBe(x)
+      // 다시 누르면 도전 — 회전이 0부터
+      press(g)
+      expect(g.sonic.pending).toBe(false)
+      expect(g.holding).toBe(true)
+      expect(g.sonic.loops).toBe(0)
+      let n = 0
+      while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, STEP)
+      expect(g.sonic.armed).toBe(true)
+    })
+
+    it('게이지 성공 구간 중심은 찬스마다 시드 랜덤 (0.2~0.8), 계절마다 다를 수 있다', () => {
+      const g = createGame(9)
+      const cs = [0, 1, 2, 3, 4, 5].map((st) => sonicSweetCenter(g, st))
+      for (const c of cs) {
+        expect(c).toBeGreaterThanOrEqual(TUNING.sonic.sweetFrom)
+        expect(c).toBeLessThanOrEqual(TUNING.sonic.sweetTo)
+      }
+      expect(new Set(cs.map((c) => c.toFixed(3))).size).toBeGreaterThan(1)
+      expect(sonicSweetCenter(createGame(9), 2)).toBe(cs[2])
+    })
   })
 
   describe('뒤쫓는 위협 (BUILD 19)', () => {
@@ -288,6 +361,7 @@ describe('game', () => {
       expect(g.sonic.chance).toBe(true)
       expect(a.x - g.threatX).toBeGreaterThanOrEqual(TUNING.threat.chanceBackPx)
       const backX = g.threatX
+      startChallenge(g)
       // 회전 3바퀴 + 게이지 — 12초 동안 매달린다
       let n = 0
       while (g.sonic.chance && n++ < 120 * 12 && g.phase === 'playing') update(g, STEP)

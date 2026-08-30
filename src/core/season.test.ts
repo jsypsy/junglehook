@@ -41,5 +41,8 @@ describe('season', () => {
     expect(daysOf(1000)).toBe(365)
     expect(daysOf(-5)).toBe(0)
     expect(dayLabel(91)).toBe('91일')
+    expect(dayLabel(365)).toBe('1년 0일')
+    expect(dayLabel(366)).toBe('1년 1일')
+    expect(dayLabel(800)).toBe('2년 70일')
   })
 })

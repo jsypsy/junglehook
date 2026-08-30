@@ -6,7 +6,7 @@
  * 문법: 굵은 외곽선(#1f3a2a)·평면 색·둥근 형태·흰 카드 + 오프셋 그림자. 웹폰트 없음.
  */
 import type { Game } from '../core/game'
-import { meters, sonicInSweet, sonicMarker, threatGap } from '../core/game'
+import { meters, sonicInSweet, sonicMarker, sonicPendingReady, threatGap } from '../core/game'
 import { dayLabel, daysOf, seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
@@ -17,6 +17,14 @@ export interface DeathUi {
   continuesLeft: number
   maxContinues: number
   adBusy: boolean
+}
+
+/** 슈퍼 도전 대기 화면이 필요로 하는 바깥 상태 (BUILD 24) */
+export interface SuperUi {
+  /** 매뉴얼 카드를 보여줄 차례인가 (횟수·"다시 안 보기" 판단은 main) */
+  manual: boolean
+  /** "다시 안 보기" 체크 상태 */
+  hide: boolean
 }
 
 interface Rect {
@@ -122,11 +130,22 @@ export class Renderer {
   private wasChance = false
   /** 결과 카드 버튼 영역 (화면 px) — 보이는 동안만 채워진다 */
   private deathButtons: { continue: Rect | null; retry: Rect | null } = { continue: null, retry: null }
+  /** 슈퍼 매뉴얼 카드의 "다시 안 보기" 영역 — 보이는 동안만 */
+  private superHideBox: Rect | null = null
+  /** 슈퍼 도전 대기가 시작된 시각 (카드 등장 애니메이션 기준) */
+  private pendingAt = -1e9
+  private wasPending = false
 
   constructor(private readonly ctx: CanvasRenderingContext2D) {}
 
   resetTrail(): void {
     this.trail.length = 0
+  }
+
+  /** 슈퍼 매뉴얼 카드의 "다시 안 보기" 히트테스트 (화면 px) */
+  hitSuperPrompt(x: number, y: number): 'hide' | null {
+    const r = this.superHideBox
+    return r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h ? 'hide' : null
   }
 
   /** 결과 카드의 버튼 히트테스트 (화면 px) */
@@ -146,6 +165,7 @@ export class Renderer {
     topInset: number,
     preset: string | null = null,
     ui: DeathUi = { continuesLeft: 0, maxContinues: 0, adBusy: false },
+    superUi: SuperUi = { manual: false, hide: false },
   ): void {
     const ctx = this.ctx
     const u = h / TUNING.viewH // 화면 배율 (줌 무관) — 장식·HUD·카드
@@ -277,6 +297,12 @@ export class Renderer {
     this.drawHud(g, best, w, h, u, topInset, preset)
     if (!dead && so.armed && g.body.anchor) this.drawSonicGauge(g, w, u, topInset)
     if (!dead) this.drawChanceCallout(w, h, u, now)
+    // 슈퍼 도전 대기 — 히트스톱 뒤 매뉴얼 카드(처음 몇 번) 또는 배지. 다시 누르면 도전 시작
+    const pendingReady = !dead && sonicPendingReady(g)
+    if (pendingReady && !this.wasPending) this.pendingAt = now
+    this.wasPending = pendingReady
+    this.superHideBox = null
+    if (pendingReady) this.drawSuperPrompt(w, h, u, now, pal, superUi)
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
   }
 
@@ -326,33 +352,29 @@ export class Renderer {
   }
 
   /** 타이밍 게이지 — 장착되면 상단에 나타나고, 마커가 왕복한다. 노란 구간 안에서 놓아야 발동 */
-  private drawSonicGauge(g: Game, w: number, u: number, topInset: number): void {
+  /** 게이지 틀 + 성공 구간 — 실제 게이지와 매뉴얼 데모가 같이 쓴다 */
+  private drawGaugeFrame(x: number, y: number, gw: number, gh: number, c: number, sweet: number, u: number): void {
     const ctx = this.ctx
-    const gw = 220 * u
-    const gh = 16 * u
-    const x = w / 2 - gw / 2
-    const y = topInset + 64 * u
-    const sweet = TUNING.sonic.sweetHalf
-    const inSweet = sonicInSweet(g)
-    // 틀
     this.chip(x, y, gw, gh, COL.card, 3 * u)
-    // 성공 구간
     ctx.save()
     this.roundRect(x, y, gw, gh, gh / 2)
     ctx.clip()
     ctx.fillStyle = COL.target
-    ctx.fillRect(x + gw * (0.5 - sweet), y, gw * sweet * 2, gh)
+    ctx.fillRect(x + gw * (c - sweet), y, gw * sweet * 2, gh)
     ctx.restore()
     ctx.strokeStyle = COL.ink
     ctx.lineWidth = 1.2 * u
     ctx.beginPath()
-    ctx.moveTo(x + gw * (0.5 - sweet), y)
-    ctx.lineTo(x + gw * (0.5 - sweet), y + gh)
-    ctx.moveTo(x + gw * (0.5 + sweet), y)
-    ctx.lineTo(x + gw * (0.5 + sweet), y + gh)
+    ctx.moveTo(x + gw * (c - sweet), y)
+    ctx.lineTo(x + gw * (c - sweet), y + gh)
+    ctx.moveTo(x + gw * (c + sweet), y)
+    ctx.lineTo(x + gw * (c + sweet), y + gh)
     ctx.stroke()
-    // 마커
-    const mx = x + gw * sonicMarker(g)
+  }
+
+  /** 게이지 마커 — 구간 안이면 노랑 + 위에 점 */
+  private drawGaugeMarker(mx: number, y: number, gh: number, inSweet: boolean, u: number): void {
+    const ctx = this.ctx
     ctx.beginPath()
     this.roundRect(mx - 4 * u, y - 6 * u, 8 * u, gh + 12 * u, 3 * u)
     ctx.fillStyle = inSweet ? COL.target : COL.player
@@ -367,6 +389,199 @@ export class Renderer {
       ctx.fill()
       ctx.stroke()
     }
+  }
+
+  /**
+   * 슈퍼 도전 대기 화면 (BUILD 24) — 세상이 멈춘 채. 처음 몇 번은 매뉴얼 카드(데모 애니메이션 + "다시 안 보기"),
+   * 그 뒤엔 배지 하나. 어느 쪽이든 문구는 "떼었다 다시 누르면 도전!" — 놓아도 찬스는 안 사라진다
+   */
+  private drawSuperPrompt(w: number, h: number, u: number, now: number, pal: Palette, ui: SuperUi): void {
+    const ctx = this.ctx
+    const t = now - this.pendingAt
+    const pop = clamp01(t / 260)
+    const pulse = 1 + 0.04 * Math.sin(now / 160)
+    const copy = '떼었다 다시 누르면 도전!'
+    if (!ui.manual) {
+      ctx.save()
+      ctx.translate(w / 2, h * 0.5)
+      ctx.scale(easeOutBack(pop) * pulse, easeOutBack(pop) * pulse)
+      ctx.globalAlpha = Math.min(1, pop * 2)
+      this.pill(copy, 0, 0, `900 ${Math.round(17 * u)}px ${FONT}`, COL.target, COL.ink, 16 * u, 3 * u, u, false)
+      ctx.restore()
+      return
+    }
+    // 매뉴얼 카드
+    ctx.fillStyle = COL.scrim
+    ctx.globalAlpha = 0.6 * pop
+    ctx.fillRect(0, 0, w, h)
+    ctx.globalAlpha = 1
+    const cardW = 320 * u
+    const cardH = 330 * u
+    const cx = w / 2
+    const cardY = h / 2 - cardH / 2 + 10 * u
+    ctx.save()
+    ctx.globalAlpha = pop
+    ctx.translate(0, (1 - easeOutBack(pop)) * 24 * u)
+    this.card(cx - cardW / 2, cardY, cardW, cardH, 20 * u, 4 * u)
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    ctx.fillStyle = COL.ink
+    ctx.font = `900 ${Math.round(22 * u)}px ${FONT}`
+    ctx.fillText('슈퍼 찬스!', cx, cardY + 36 * u)
+    // 데모 무대
+    const demo = { x: cx - cardW / 2 + 16 * u, y: cardY + 52 * u, w: cardW - 32 * u, h: 168 * u }
+    ctx.save()
+    this.roundRect(demo.x, demo.y, demo.w, demo.h, 14 * u)
+    ctx.fillStyle = COL.cardTint
+    ctx.fill()
+    ctx.clip()
+    this.drawSuperDemo(demo, u, now, pal)
+    ctx.restore()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 2 * u
+    this.roundRect(demo.x, demo.y, demo.w, demo.h, 14 * u)
+    ctx.stroke()
+    // 행동 문구
+    ctx.save()
+    ctx.translate(cx, cardY + 250 * u)
+    ctx.scale(pulse, pulse)
+    this.pill(copy, 0, 0, `900 ${Math.round(16 * u)}px ${FONT}`, COL.target, COL.ink, 14 * u, 0, u, true)
+    ctx.restore()
+    // "다시 안 보기" 체크
+    const bx = cx - 62 * u
+    const by = cardY + 282 * u
+    const box = 20 * u
+    ctx.beginPath()
+    this.roundRect(bx, by, box, box, 5 * u)
+    ctx.fillStyle = ui.hide ? COL.target : COL.card
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 2 * u
+    ctx.stroke()
+    if (ui.hide) {
+      ctx.beginPath()
+      ctx.moveTo(bx + 5 * u, by + 10 * u)
+      ctx.lineTo(bx + 9 * u, by + 15 * u)
+      ctx.lineTo(bx + 16 * u, by + 5 * u)
+      ctx.lineWidth = 3 * u
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.stroke()
+    }
+    ctx.textAlign = 'left'
+    ctx.fillStyle = COL.inkSoft
+    ctx.font = `800 ${Math.round(14 * u)}px ${FONT}`
+    ctx.fillText('다시 안 보기', bx + box + 10 * u, by + 15 * u)
+    ctx.restore()
+    // 히트 영역은 넉넉히 (44px 규칙)
+    this.superHideBox = { x: bx - 12 * u, y: by - 12 * u, w: 150 * u, h: 44 * u }
+  }
+
+  /** 슈퍼 매뉴얼 데모: 누른 채 3바퀴 → 게이지 노란 구간에서 떼기 → 대시. 4.6초 루프 */
+  private drawSuperDemo(d: { x: number; y: number; w: number; h: number }, u: number, now: number, pal: Palette): void {
+    const ctx = this.ctx
+    const LOOP = 4600
+    const SPIN_END = 2300
+    const GAUGE_END = 3400
+    const t = now % LOOP
+    const anchor = { x: d.x + d.w * 0.32, y: d.y + d.h * 0.42 }
+    const rope = 34 * u
+    let ball: { x: number; y: number }
+    let stage: 0 | 1 | 2
+    let loops = 0
+    let pressed = true
+    if (t < SPIN_END) {
+      stage = 0
+      const p = t / SPIN_END
+      const ang = Math.PI / 2 + p * Math.PI * 2 * 3
+      ball = { x: anchor.x + Math.cos(ang) * rope, y: anchor.y + Math.sin(ang) * rope }
+      loops = Math.floor(p * 3)
+    } else if (t < GAUGE_END) {
+      stage = 1
+      loops = 3
+      ball = { x: anchor.x, y: anchor.y + rope }
+      pressed = t < GAUGE_END - 200
+    } else {
+      stage = 2
+      const p = (t - GAUGE_END) / (LOOP - GAUGE_END)
+      ball = { x: anchor.x + p * d.w * 0.75, y: anchor.y + rope - p * 18 * u }
+      pressed = false
+    }
+    // 잎 앵커 + 로프
+    ctx.beginPath()
+    ctx.moveTo(anchor.x, d.y - 4 * u)
+    ctx.quadraticCurveTo(anchor.x + 4 * u, (d.y + anchor.y) / 2, anchor.x, anchor.y - 7 * u)
+    ctx.strokeStyle = pal.vine
+    ctx.lineWidth = 3 * u
+    ctx.lineCap = 'round'
+    ctx.stroke()
+    if (stage !== 2) {
+      ctx.beginPath()
+      ctx.arc(anchor.x, anchor.y, 18 * u, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(255,204,51,0.35)'
+      ctx.fill()
+    }
+    this.drawLoop(anchor.x, anchor.y, 8 * u, u, stage === 2 ? pal.vine : COL.target)
+    if (stage !== 2) {
+      ctx.beginPath()
+      ctx.moveTo(anchor.x, anchor.y)
+      ctx.lineTo(ball.x, ball.y)
+      ctx.strokeStyle = COL.rope
+      ctx.lineWidth = 3 * u
+      ctx.stroke()
+      if (loops > 0) this.drawChargeRings(ball.x, ball.y, u * 0.8, loops, stage === 1, now)
+    } else {
+      // 대시 — 속도선 + 불꽃
+      ctx.strokeStyle = 'rgba(31,58,42,0.35)'
+      ctx.lineWidth = 2 * u
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath()
+        ctx.moveTo(ball.x - (20 + i * 12) * u, ball.y - 8 * u + i * 5 * u)
+        ctx.lineTo(ball.x - (40 + i * 12) * u, ball.y - 8 * u + i * 5 * u)
+        ctx.stroke()
+      }
+    }
+    this.drawPlayer(ball.x, ball.y, (stage === 2 ? 16 : 11) * u, u, stage === 2 ? 600 : 100, pressed, stage === 2, pal, seasonAt(0), now)
+    // 게이지 (단계 1) — 마커가 구간에 닿는 순간 손을 뗀다
+    if (stage === 1) {
+      const gw = d.w * 0.6
+      const gh = 12 * u
+      const gx = d.x + d.w * 0.2
+      const gy = d.y + 16 * u
+      const c = 0.66
+      const p = clamp01((t - SPIN_END) / (GAUGE_END - 200 - SPIN_END))
+      const m = p * c // 왼쪽에서 출발해 구간에서 멈춘다
+      this.drawGaugeFrame(gx, gy, gw, gh, c, TUNING.sonic.sweetHalf, u)
+      this.drawGaugeMarker(gx + gw * m, gy, gh, Math.abs(m - c) <= TUNING.sonic.sweetHalf, u)
+    }
+    // 손가락
+    const fx = d.x + d.w * 0.5
+    const fy = d.y + d.h - 22 * u + (pressed ? 4 * u : 0)
+    if (pressed) {
+      const rp = (t % 700) / 700
+      ctx.beginPath()
+      ctx.arc(fx, fy - 8 * u, (8 + 14 * rp) * u, 0, Math.PI * 2)
+      ctx.strokeStyle = COL.target
+      ctx.globalAlpha = 0.7 * (1 - rp)
+      ctx.lineWidth = 2.5 * u
+      ctx.stroke()
+      ctx.globalAlpha = 1
+    }
+    this.drawFinger(fx, fy, u, pressed)
+    const copy = ['누른 채 3바퀴', '노란 구간에서 떼기!', '슈퍼 대시!'][stage]!
+    this.pill(copy, d.x + d.w / 2, d.y + d.h - 62 * u, `800 ${Math.round(13 * u)}px ${FONT}`, COL.target, COL.ink, 10 * u, 0, u, true)
+  }
+
+  private drawSonicGauge(g: Game, w: number, u: number, topInset: number): void {
+    const gw = 220 * u
+    const gh = 16 * u
+    const x = w / 2 - gw / 2
+    const y = topInset + 64 * u
+    const sweet = TUNING.sonic.sweetHalf
+    const c = g.sonic.sweetCenter // 찬스마다 다른 위치 (BUILD 24)
+    const inSweet = sonicInSweet(g)
+    this.drawGaugeFrame(x, y, gw, gh, c, sweet, u)
+    this.drawGaugeMarker(x + gw * sonicMarker(g), y, gh, inSweet, u)
   }
 
   /** 계절 입자 — 겨울 눈(갈수록 거세짐), 가을 낙엽. 상태 없는 결정론 패턴(시간·인덱스). 봄 꽃잎은 지저분해 제거 */

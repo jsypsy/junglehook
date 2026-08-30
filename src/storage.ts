@@ -16,6 +16,7 @@ export const BEST_KEY = `${NS}.best`
 export const SAVE_KEY = `${NS}.save`
 const MUTED_KEY = `${NS}.muted`
 const TUTORIAL_KEY = `${NS}.tutorial-done`
+const SUPER_MANUAL_KEY = `${NS}.super-manual`
 
 function read(key: string): string | null {
   try {
@@ -97,4 +98,25 @@ function canPersist(): boolean {
   } catch {
     return false
   }
+}
+
+/** 슈퍼 매뉴얼 카드 — 보여준 횟수와 "다시 안 보기" (BUILD 24) */
+export interface SuperManual {
+  shown: number
+  hide: boolean
+}
+
+export function loadSuperManual(): SuperManual {
+  const raw = read(SUPER_MANUAL_KEY)
+  if (!raw) return { shown: 0, hide: !canPersist() } // 저장 안 되는 환경이면 매번 뜨는 것보다 안 보이는 쪽
+  try {
+    const v = JSON.parse(raw) as Partial<SuperManual>
+    return { shown: Number(v.shown) || 0, hide: v.hide === true }
+  } catch {
+    return { shown: 0, hide: false }
+  }
+}
+
+export function saveSuperManual(v: SuperManual): void {
+  write(SUPER_MANUAL_KEY, JSON.stringify(v))
 }

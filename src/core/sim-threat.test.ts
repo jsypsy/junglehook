@@ -26,7 +26,11 @@ function runBot(seed: number, thetaDeg: number, maxSec: number, pressMode: 'apex
   const theta = (thetaDeg * Math.PI) / 180
   for (let i = 0; i < 120 * maxSec && g.phase === 'playing'; i++) {
     const b = g.body
-    if (b.anchor) {
+    if (g.sonic.pending) {
+      // 슈퍼 도전 대기(BUILD 24)는 떼었다 다시 눌러 넘긴다 (슈퍼는 loopsToArm=999로 꺼져 있어 곧 일반 릴리스)
+      releaseInput(g)
+      press(g)
+    } else if (b.anchor) {
       const ang = Math.atan2(b.pos.x - b.anchor.x, b.pos.y - b.anchor.y)
       if (ang > theta && b.vel.y < 0) releaseInput(g)
     } else if (!g.holding && (pressMode === 'always' || b.vel.y > -20)) {

@@ -1,12 +1,12 @@
 /** 부트스트랩 — 고정 스텝 시뮬레이션 + 카메라 + 입력/렌더 연결 */
-import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, update } from './core/game'
+import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, sonicPendingReady, update } from './core/game'
 import { Analytics } from './analytics'
 import { TUNING, applyPreset } from './core/tuning'
 import { bindPointer } from './input/pointer'
 import { createPlatform } from './platform'
 import { cancelHostTopInset } from './platform/adapter'
 import { Renderer } from './render/renderer'
-import { loadBest, saveBest } from './storage'
+import { loadBest, loadSuperManual, saveBest, saveSuperManual } from './storage'
 
 const SIM_STEP = 1 / 120
 /** 사망 직후 오입력으로 바로 재시작되는 것 방지 (초) */
@@ -29,6 +29,13 @@ let deadAt = 0
 let bestSaved = false
 /** 이번 런의 신기록 — best 표시는 다음 판부터 갱신해 "신기록!" 오버레이가 유지되게 */
 let pendingBest = 0
+/** 슈퍼 매뉴얼 카드 — 처음 manualShows번만, "다시 안 보기"로 끔 (BUILD 24) */
+const superManual = loadSuperManual()
+/** 이번 찬스에서 매뉴얼 노출을 셌는가 (찬스마다 한 번만 카운트) */
+let manualCounted = false
+function superManualVisible(): boolean {
+  return !superManual.hide && superManual.shown < TUNING.sonic.manualShows
+}
 
 // 개발 전용 디버그 훅 — 크롬 MCP 검수에서 게임 상태를 읽고 자동 플레이할 때 쓴다 (프로덕션 번들에서 제거됨)
 if (import.meta.env.DEV) {
@@ -107,6 +114,12 @@ bindPointer(
       return
     }
     if (game.phase === 'ready') analytics.gameStart(false, performance.now())
+    if (sonicPendingReady(game) && manualCounted && renderer.hitSuperPrompt(x, y) === 'hide') {
+      // 체크박스 토글 — 도전은 시작하지 않는다
+      superManual.hide = !superManual.hide
+      saveSuperManual(superManual)
+      return
+    }
     press(game)
   },
   () => releaseInput(game),
@@ -156,11 +169,20 @@ function tick(now: number, dt: number): void {
   const targetCam = game.body.pos.x - (w * 0.32) / s
   cam.x += (targetCam - cam.x) * Math.min(1, dt * 8)
   const insets = cancelHostTopInset(platform.safeArea(), screen.height, h)
-  renderer.draw(game, cam, best, w, h, insets.top, preset, {
-    continuesLeft: continuesLeft(game),
-    maxContinues: TUNING.maxContinues,
-    adBusy,
-  })
+  // 매뉴얼 노출 횟수 — 카드가 뜨는 찬스마다 한 번 센다 (도전 시작 뒤 리셋)
+  const pendingReady = sonicPendingReady(game)
+  const manual = pendingReady && superManualVisible()
+  if (manual && !manualCounted) {
+    manualCounted = true
+    superManual.shown += 1
+    saveSuperManual(superManual)
+  }
+  if (!pendingReady) manualCounted = false
+  renderer.draw(
+    game, cam, best, w, h, insets.top, preset,
+    { continuesLeft: continuesLeft(game), maxContinues: TUNING.maxContinues, adBusy },
+    { manual: manualCounted, hide: superManual.hide }, // 이번 찬스에 카드가 떴으면 도전 시작까지 유지 (체크를 되돌릴 수 있게)
+  )
 }
 
 async function boot(): Promise<void> {
