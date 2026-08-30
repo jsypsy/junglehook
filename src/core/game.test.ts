@@ -318,6 +318,25 @@ describe('game', () => {
       expect(g.body.anchor).toBeNull()
     })
 
+    it('게이지 입력 유예 — 구간을 막 지났어도 inputGraceSec 안이면 성공, 그 뒤면 실패 (BUILD 26)', () => {
+      const g = createGame(3)
+      const { sweetHalf, gaugeHz, inputGraceSec } = TUNING.sonic
+      const speed = gaugeHz * 2 // 칸/초 (삼각파 상승 구간)
+      g.sonic.sweetCenter = 0.5
+      // 상승 구간에서 구간 오른쪽 끝을 지난 직후
+      const edgeT = (0.5 + sweetHalf) / speed
+      g.sonic.gaugeT = edgeT + inputGraceSec * 0.6
+      expect(Math.abs(sonicMarker(g) - 0.5) <= sweetHalf).toBe(false) // 지금 마커는 구간 밖
+      expect(sonicInSweet(g)).toBe(true) // 유예 안
+      g.sonic.gaugeT = edgeT + inputGraceSec * 1.5
+      expect(sonicInSweet(g)).toBe(false)
+      // 구간 안이면 당연히 성공, 구간 한참 전이면 실패
+      g.sonic.gaugeT = 0.5 / speed
+      expect(sonicInSweet(g)).toBe(true)
+      g.sonic.gaugeT = (0.5 - sweetHalf) / speed - inputGraceSec * 2
+      expect(sonicInSweet(g)).toBe(false)
+    })
+
     it('게이지 성공 구간 중심은 찬스마다 시드 랜덤 (0.2~0.8), 계절마다 다를 수 있다', () => {
       const g = createGame(9)
       const cs = [0, 1, 2, 3, 4, 5].map((st) => sonicSweetCenter(g, st))

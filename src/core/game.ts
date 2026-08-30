@@ -88,15 +88,25 @@ export function sonicChanceK(g: Game, stage: number): number {
   return chanceGrabMin + r.int(chanceGrabMax - chanceGrabMin + 1)
 }
 
-/** 게이지 마커 위치 0~1 — 삼각파로 왕복 */
-export function sonicMarker(g: Game): number {
-  const x = (g.sonic.gaugeT * TUNING.sonic.gaugeHz * 2) % 2
+/** 게이지 마커 위치 0~1 — 삼각파로 왕복. t를 주면 그 시각(장착 후 초)의 위치 */
+export function sonicMarker(g: Game, t: number = g.sonic.gaugeT): number {
+  const x = (Math.max(0, t) * TUNING.sonic.gaugeHz * 2) % 2
   return 1 - Math.abs(x - 1)
 }
 
-/** 지금 놓으면 발동하는가 — 마커가 이번 찬스의 성공 구간(sweetCenter ± sweetHalf) 안 */
+/**
+ * 지금 놓으면 발동하는가 — 놓기 직전 inputGraceSec 동안 마커가 한 번이라도 성공 구간(sweetCenter ± sweetHalf)에
+ * 있었으면 성공. 화면에 보이던 마커(지난 프레임)와 터치 지연을 보상한다. 세 시점(지금·중간·유예 끝)을 본다 —
+ * 유예 동안 마커 이동(0.13칸)이 구간 폭(0.12)과 비슷해 끝점만 보면 사이를 건너뛸 수 있다
+ */
 export function sonicInSweet(g: Game): boolean {
-  return Math.abs(sonicMarker(g) - g.sonic.sweetCenter) <= TUNING.sonic.sweetHalf
+  const { sweetHalf, inputGraceSec } = TUNING.sonic
+  const c = g.sonic.sweetCenter
+  const t = g.sonic.gaugeT
+  for (const dt of [0, inputGraceSec / 2, inputGraceSec]) {
+    if (Math.abs(sonicMarker(g, t - dt) - c) <= sweetHalf) return true
+  }
+  return false
 }
 
 /** 도전 대기 중이고 히트스톱이 끝났다 — 렌더러가 매뉴얼 카드/배지를 띄우는 조건 */
