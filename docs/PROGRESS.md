@@ -63,4 +63,7 @@
   떨어지며 잡히는" 모양 제거. 게임오버 제목 "추락!" → "놓쳤다!"
 - 클로드 디자인 캔버스로 비주얼 방향 확정: 밝은 카툰 정글, 토큰 1장 + 화면 4장 (D-008).
   사본을 `design/`에 저장. 게임오버 문구 "끝"으로(렌더러 반영)
+- 앱인토스 테스트 배포 1회: `npm run ait:build` → `npm run ait:deploy` (BUILD 7, 번들 77.7KB/gzip 24.7KB).
+  deploymentId 01a05196-…, 기록 tools/latest-deployment.json. 콘솔 MCP는 이 세션에 미등록이라 CLI 경로 사용
+- 앵커 표현 확정: 구름은 배경, 앵커는 덩굴 매듭 (D-008)
 

@@ -10,7 +10,7 @@ _Last updated: 2026-08-30_
 이름       정글훅 / junglehook — 충돌 검색 완료. GRAC 제명은 신청 직전 재확인 (D-002)
 코드       BUILD 7 — 충전기(4s 홀드→360°)·줌아웃·`?p=b4`·사망 연출·시작 데모·reach 450 (D-006/7). 테스트 31개
 실플레이   BUILD 1: 156m→206m(≈15s). "빨리 죽는다 / 수직 정지 / 붕붕 돌면 세지게" → D-006
-콘솔       미니앱 미등록 (워크스페이스 72091에 등록 예정)
+콘솔       junglehook 등록됨 · 테스트 배포 1회 (BUILD 7, 2026-08-30) — tools/latest-deployment.json
 디자인     밝은 카툰 정글 확정 (D-008) — 설계도 `design/`, 캔버스 링크는 design/README.md
 다음       BUILD 8: renderer.ts를 카툰 설계도대로 재작업 · B7 vs B4 판정 병행
 ```
