@@ -81,7 +81,9 @@ const SEASON_PALETTE: Record<Season, Palette> = {
   spring: { player: '#ffd84a', playerHi: '#fff3b0', skyTop: '#cfe9f6', skyBottom: '#fbeef0', sun: '#ffe9a0', glow: '#fff6c8', cloud: '#ffffff', forestFar: '#d6ecb0', forestMid: '#a5d98a', forestNear: '#6cbf6f', leaf: '#3f9a58', vine: '#6cbf6f', trunk: '#b98a5a' },
   summer: { player: '#ff5a3c', playerHi: '#ffc2a8', skyTop: '#3fb0ea', skyBottom: '#a9e2ff', sun: '#ffcc1f', glow: '#fff0a0', cloud: '#ffffff', forestFar: '#5cc06a', forestMid: '#2c9c4b', forestNear: '#177a3a', leaf: '#0d5a2a', vine: '#1f8a40', trunk: '#8a5a34' },
   autumn: { player: '#ff9a3c', playerHi: '#ffd7b3', skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a', trunk: '#6e4426' },
-  winter: { player: '#e4f1fb', playerHi: '#ffffff', skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3', trunk: '#6f7f88' },
+  // 겨울: 회색조가 아니라 "추운 색" (사용자: 흑백일 필요 없다, 단 눈이 오니 흐린 날) — 푸르스름한 흐린 하늘, 낮은 푸른 회색 구름,
+  // 창백한 해, 눈 덮인 흰 언덕, 갈색 가지, 상록 양치식물
+  winter: { player: '#e4f1fb', playerHi: '#ffffff', skyTop: '#a6bdd6', skyBottom: '#e3ebf3', sun: '#f6efd8', glow: '#ffffff', cloud: '#c6d3e0', forestFar: '#eaf1f6', forestMid: '#a5c2d6', forestNear: '#6b93b0', leaf: '#3f6f5e', vine: '#8aa3b3', trunk: '#7a5a44' },
 }
 /** 잎 밀도 (design/trees): 겨울 앙상한 가지만 → 봄 연둣빛 → 가을 → 여름 덩어리가 가지를 덮는다 */
 const LEAF_DENSITY: Record<Season, number> = { spring: 0.45, summer: 1, autumn: 0.75, winter: 0 }
