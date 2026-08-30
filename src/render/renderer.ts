@@ -57,13 +57,14 @@ interface Palette {
   forestNear: string
   leaf: string
   vine: string
+  trunk: string
 }
 const SEASON_PALETTE: Record<Season, Palette> = {
   // 봄: 파스텔 연두·분홍기 도는 하늘, 벚꽃잎 / 여름: 진한 파랑 하늘·짙은 녹색 — 두 계절이 한눈에 갈리게
-  spring: { skyTop: '#cfe9f6', skyBottom: '#fbeef0', sun: '#ffe9a0', glow: '#fff6c8', cloud: '#ffffff', forestFar: '#d6ecb0', forestMid: '#a5d98a', forestNear: '#6cbf6f', leaf: '#3f9a58', vine: '#6cbf6f' },
-  summer: { skyTop: '#3fb0ea', skyBottom: '#a9e2ff', sun: '#ffcc1f', glow: '#fff0a0', cloud: '#ffffff', forestFar: '#5cc06a', forestMid: '#2c9c4b', forestNear: '#177a3a', leaf: '#0d5a2a', vine: '#1f8a40' },
-  autumn: { skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a' },
-  winter: { skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3' },
+  spring: { skyTop: '#cfe9f6', skyBottom: '#fbeef0', sun: '#ffe9a0', glow: '#fff6c8', cloud: '#ffffff', forestFar: '#d6ecb0', forestMid: '#a5d98a', forestNear: '#6cbf6f', leaf: '#3f9a58', vine: '#6cbf6f', trunk: '#b98a5a' },
+  summer: { skyTop: '#3fb0ea', skyBottom: '#a9e2ff', sun: '#ffcc1f', glow: '#fff0a0', cloud: '#ffffff', forestFar: '#5cc06a', forestMid: '#2c9c4b', forestNear: '#177a3a', leaf: '#0d5a2a', vine: '#1f8a40', trunk: '#8a5a34' },
+  autumn: { skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a', trunk: '#6e4426' },
+  winter: { skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3', trunk: '#6f7f88' },
 }
 function paletteFor(st: SeasonState): Palette {
   const a = SEASON_PALETTE[st.prev]
@@ -336,10 +337,94 @@ export class Renderer {
       }
     }
 
-    // 숲 3겹 — 화면 아래에서 솟는 물결. 멀수록 연하고 느리다
-    this.drawForestBand(cam, w, h, u, 0.694, 0.3, 22, 95, pal.forestFar)
-    this.drawForestBand(cam, w, h, u, 0.775, 0.5, 20, 80, pal.forestMid)
-    this.drawForestBand(cam, w, h, u, 0.855, 0.75, 18, 70, pal.forestNear)
+    // 우거진 캐노피 (D-011): 먼 나무들(기둥 없이 덩어리) → 기둥 있는 중간 나무들 → 땅 → 앞쪽 양치식물.
+    // 나무는 띄엄띄엄 — 붙여 놓으면 물결 울타리로 읽힌다
+    this.drawCanopyLayer(cam, w, h, u, 0.3, 0.68, 620, [
+      { x: 40, r: 52 }, { x: 250, r: 60 }, { x: 450, r: 55 },
+    ], pal.forestFar, null, 0.93)
+    this.drawCanopyLayer(cam, w, h, u, 0.5, 0.735, 700, [
+      { x: 90, r: 72 }, { x: 400, r: 80 },
+    ], pal.forestMid, pal.trunk, 1)
+    this.drawForestBand(cam, w, h, u, 0.9, 0.75, 12, 80, pal.forestNear)
+    // 안개 띠 — 중경과 땅 사이
+    const mistY = h * 0.8
+    const mist = ctx.createLinearGradient(0, mistY - 40 * u, 0, mistY + 40 * u)
+    mist.addColorStop(0, 'rgba(255,255,255,0)')
+    mist.addColorStop(0.5, 'rgba(255,255,255,0.22)')
+    mist.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = mist
+    ctx.fillRect(0, mistY - 40 * u, w, 80 * u)
+  }
+
+  /**
+   * 둥근 잎덩어리 나무들 — 원 다섯 개 합집합(외곽선 먼저, 채움 나중). 주기 반복·패럴랙스.
+   * trunk가 있으면 덩어리 아래로 기둥을 땅까지 내린다. bottomFrac: 덩어리 몸통을 이 높이까지만 채운다
+   */
+  private drawCanopyLayer(
+    cam: Camera,
+    w: number,
+    h: number,
+    u: number,
+    parallax: number,
+    yFrac: number,
+    periodPx: number,
+    trees: Array<{ x: number; r: number }>,
+    fill: string,
+    trunk: string | null,
+    bottomFrac: number,
+  ): void {
+    const ctx = this.ctx
+    const period = periodPx * u
+    const off = ((-cam.x * parallax * u) % period + period) % period
+    const lobes = [
+      [0, 0, 1], [-0.8, 0.15, 0.75], [0.8, 0.15, 0.75], [-0.4, -0.45, 0.7], [0.4, -0.45, 0.7],
+    ]
+    const cy = h * yFrac
+    const bottom = h * bottomFrac + 10
+    // 기둥 먼저 (덩어리 뒤로 들어간다)
+    if (trunk) {
+      ctx.fillStyle = trunk
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 3 * u
+      ctx.lineJoin = 'round'
+      for (let k = -1; k * period + off < w + period; k++) {
+        for (const t of trees) {
+          const cx = k * period + off + t.x * u
+          if (cx < -100 * u || cx > w + 100 * u) continue
+          const r = t.r * u
+          const hw = r * 0.18
+          ctx.beginPath()
+          ctx.moveTo(cx - hw * 1.4, h + 10)
+          ctx.lineTo(cx - hw, cy + r * 0.3)
+          ctx.lineTo(cx + hw, cy + r * 0.3)
+          ctx.lineTo(cx + hw * 1.4, h + 10)
+          ctx.closePath()
+          ctx.fill()
+          ctx.stroke()
+        }
+      }
+    }
+    const pass = (color: string, grow: number) => {
+      ctx.fillStyle = color
+      for (let k = -1; k * period + off < w + period; k++) {
+        for (const t of trees) {
+          const cx = k * period + off + t.x * u
+          if (cx < -t.r * 2.2 * u || cx > w + t.r * 2.2 * u) continue
+          const r = t.r * u
+          for (const [dx, dy, rr] of lobes) {
+            ctx.beginPath()
+            ctx.arc(cx + dx! * r, cy + dy! * r, rr! * r + grow, 0, Math.PI * 2)
+            ctx.fill()
+          }
+          if (!trunk) {
+            // 먼 나무는 몸통을 아래로 조금 늘려 숲의 두께를 만든다
+            ctx.fillRect(cx - r * 1.2 - grow, cy, r * 2.4 + grow * 2, Math.max(0, bottom - cy))
+          }
+        }
+      }
+    }
+    pass(COL.ink, 3 * u)
+    pass(fill, 0)
   }
 
   /** 태양 표정 — 계절별. 경계에선 현재 계절 표정이 서서히 나타난다 */
@@ -469,24 +554,47 @@ export class Renderer {
     ctx.stroke()
   }
 
-  /** 앞쪽 잎 — 화면 아래 모서리, 플레이어보다 앞에 그려 깊이를 만든다 */
+  /** 앞쪽 양치식물 — 화면 아래, 플레이어보다 앞에 그려 깊이를 만든다 (패럴랙스 1.15) */
   private drawForeground(cam: Camera, w: number, h: number, u: number, pal: Palette): void {
-    const ctx = this.ctx
     const period = 520 * u
     const off = ((-cam.x * 1.15 * u) % period + period) % period
-    ctx.fillStyle = pal.leaf
-    ctx.strokeStyle = COL.ink
-    ctx.lineWidth = 3 * u
-    ctx.lineJoin = 'round'
     for (let k = -1; k * period + off < w + period; k++) {
       const x0 = k * period + off
-      for (const leaf of [
-        { x: 30, rx: 48, ry: 30, rot: -0.5 },
-        { x: 250, rx: 40, ry: 24, rot: 0.6 },
-        { x: 400, rx: 44, ry: 26, rot: -0.3 },
-      ]) {
+      this.drawFern(x0 + 0 * u, h + 8 * u, 1.1 * u, pal.leaf, false)
+      this.drawFern(x0 + 210 * u, h + 14 * u, 0.7 * u, pal.leaf, false)
+      this.drawFern(x0 + 420 * u, h + 8 * u, 1.0 * u, pal.leaf, true)
+    }
+  }
+
+  /** 양치식물 한 포기: 휘는 줄기 + 잎 여섯 장 */
+  private drawFern(x: number, y: number, k: number, fill: string, flip: boolean): void {
+    const ctx = this.ctx
+    const sgn = flip ? -1 : 1
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 3 * k
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    ctx.quadraticCurveTo(x + sgn * 40 * k, y - 70 * k, x + sgn * 90 * k, y - 120 * k)
+    ctx.stroke()
+    ctx.fillStyle = fill
+    ctx.lineWidth = 2 * k
+    // 잎은 줄기 접선에 수직으로 양옆에 한 쌍씩, 끝으로 갈수록 작아진다
+    for (let i = 1; i <= 6; i++) {
+      const t = i / 7
+      const px = x + sgn * (40 * k * 2 * t * (1 - t) + 90 * k * t * t)
+      const py = y - (70 * k * 2 * t * (1 - t) + 120 * k * t * t)
+      // 접선(도함수)
+      const tx = sgn * (40 * k * 2 * (1 - 2 * t) + 180 * k * t)
+      const ty = -(70 * k * 2 * (1 - 2 * t) + 240 * k * t)
+      const ang = Math.atan2(ty, tx)
+      const len = 22 * k * (1 - t * 0.55)
+      const wid = 7 * k * (1 - t * 0.4)
+      for (const side of [-1, 1]) {
+        const a = ang + side * 1.15
         ctx.beginPath()
-        ctx.ellipse(x0 + leaf.x * u, h + 6 * u, leaf.rx * u, leaf.ry * u, leaf.rot, 0, Math.PI * 2)
+        ctx.ellipse(px + Math.cos(a) * len * 0.8, py + Math.sin(a) * len * 0.8, len, wid, a, 0, Math.PI * 2)
         ctx.fill()
         ctx.stroke()
       }
