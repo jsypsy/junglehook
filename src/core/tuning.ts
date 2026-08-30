@@ -45,9 +45,9 @@ export const TUNING = {
   /** 소닉 파워 (D-012): 한 앵커에서 loopsToArm바퀴 돌면 장착, 놓으면 로켓처럼 직선 대시 */
   sonic: {
     loopsToArm: 3,
-    /** 대시 거리 (m) */
-    dashMeters: 250,
-    /** 대시 속도 (px/s) — 250m를 5초에 */
+    /** 대시 거리 (m) — 250은 계절 한 구간(250m)을 통째로 건너뛰어 너무 쉬웠다 → 150 (BUILD 18) */
+    dashMeters: 150,
+    /** 대시 속도 (px/s) — 150m를 3초에 */
     dashSpeed: 2500,
     /** 대시 중 순항 고도 (px) — 앞부분에서 여기로 떠오른다 */
     cruiseY: 230,
@@ -84,8 +84,15 @@ export const TUNING = {
     /** 세로 흔들림: 시작 → rampX 지점에서 최대 */
     jitterMin: 35,
     jitterMax: 130,
-    /** 난이도가 최대에 도달하는 x (px) — 9000은 180m(≈15s)에 최대 난이도라 세션이 목표(30~60s)의 절반 (D-006) */
+    /** 1차 램프가 최대에 도달하는 x (px) — 9000은 180m(≈15s)에 최대 난이도라 세션이 목표(30~60s)의 절반 (D-006) */
     rampX: 18000,
+    /** 2차 램프 (BUILD 18, 사용자 "4계절이 지날수록 점점 어려워지게"): rampX 뒤로 사계절 한 바퀴(season.stepM×4)
+     *  지날 때마다 간격 +gapPerCycle·흔들림 +jitterPerCycle — 상한까지. 거리에 비례하므로 계절 경계에서 뚝 끊기지 않는다.
+     *  간격 상한은 reach(450)보다 넉넉히 아래 — 잎이 물리적으로 닿을 수 없는 배치는 "내 탓인 죽음"이 아니다 (D-001) */
+    gapPerCycle: 45,
+    jitterPerCycle: 25,
+    gapCap: 390,
+    jitterCap: 175,
   },
 } as const
 
@@ -96,6 +103,9 @@ export const TUNING = {
 export const PRESETS: Record<string, Partial<Record<keyof typeof TUNING, unknown>>> = {
   /** BUILD 4: 회전 없음(≤83°), 느긋한 스윙 */
   b4: { rigidRope: false, swingPump: 150, swingMaxSpeed: 650, airDrag: 0.12 },
+  /** BUILD 18 난이도 실험(`?p=hard`): 앵커가 더 빨리·더 넓게 벌어진다 (rampX 18000→11000, gapMax 300→330,
+   *  jitterMax 130→165). "너무 쉽다" 피드백의 A/B용 — 기본값은 아직 그대로 */
+  hard: { anchor: { ...TUNING.anchor, rampX: 11000, gapMax: 330, jitterMax: 165 } },
 }
 
 export function applyPreset(name: string | null): string | null {

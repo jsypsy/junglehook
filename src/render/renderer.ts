@@ -50,8 +50,11 @@ const COL = {
 }
 const FONT = 'system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif'
 
-/** 계절마다 바뀌는 색 (D-010). 외곽선·플레이어·타깃·로프는 고정 */
+/** 계절마다 바뀌는 색 (D-010). 외곽선·타깃·로프는 고정. 플레이어 몸색은 계절을 탄다 (BUILD 18) */
 interface Palette {
+  /** 플레이어 몸 — 봄 온화한 노랑 / 여름 붉게 달아오름 / 가을 주황 / 겨울 하양파랑(추워서 질림) */
+  player: string
+  playerHi: string
   skyTop: string
   skyBottom: string
   sun: string
@@ -66,10 +69,10 @@ interface Palette {
 }
 const SEASON_PALETTE: Record<Season, Palette> = {
   // 봄: 파스텔 연두·분홍기 도는 하늘, 벚꽃잎 / 여름: 진한 파랑 하늘·짙은 녹색 — 두 계절이 한눈에 갈리게
-  spring: { skyTop: '#cfe9f6', skyBottom: '#fbeef0', sun: '#ffe9a0', glow: '#fff6c8', cloud: '#ffffff', forestFar: '#d6ecb0', forestMid: '#a5d98a', forestNear: '#6cbf6f', leaf: '#3f9a58', vine: '#6cbf6f', trunk: '#b98a5a' },
-  summer: { skyTop: '#3fb0ea', skyBottom: '#a9e2ff', sun: '#ffcc1f', glow: '#fff0a0', cloud: '#ffffff', forestFar: '#5cc06a', forestMid: '#2c9c4b', forestNear: '#177a3a', leaf: '#0d5a2a', vine: '#1f8a40', trunk: '#8a5a34' },
-  autumn: { skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a', trunk: '#6e4426' },
-  winter: { skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3', trunk: '#6f7f88' },
+  spring: { player: '#ffd84a', playerHi: '#fff3b0', skyTop: '#cfe9f6', skyBottom: '#fbeef0', sun: '#ffe9a0', glow: '#fff6c8', cloud: '#ffffff', forestFar: '#d6ecb0', forestMid: '#a5d98a', forestNear: '#6cbf6f', leaf: '#3f9a58', vine: '#6cbf6f', trunk: '#b98a5a' },
+  summer: { player: '#ff5a3c', playerHi: '#ffc2a8', skyTop: '#3fb0ea', skyBottom: '#a9e2ff', sun: '#ffcc1f', glow: '#fff0a0', cloud: '#ffffff', forestFar: '#5cc06a', forestMid: '#2c9c4b', forestNear: '#177a3a', leaf: '#0d5a2a', vine: '#1f8a40', trunk: '#8a5a34' },
+  autumn: { player: '#ff9a3c', playerHi: '#ffd7b3', skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a', trunk: '#6e4426' },
+  winter: { player: '#e4f1fb', playerHi: '#ffffff', skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3', trunk: '#6f7f88' },
 }
 function paletteFor(st: SeasonState): Palette {
   const a = SEASON_PALETTE[st.prev]
@@ -225,7 +228,7 @@ export class Renderer {
     this.trail.forEach((t, i) => {
       const q = (i + 1) / this.trail.length
       ctx.globalAlpha = 0.15 + 0.55 * q
-      this.outlinedCircle(toX(t.x), toY(t.y), (2.5 + 3.5 * q) * s, COL.player, 1.2 * s)
+      this.outlinedCircle(toX(t.x), toY(t.y), (2.5 + 3.5 * q) * s, pal.player, 1.2 * s)
     })
     ctx.globalAlpha = 1
 
@@ -256,11 +259,11 @@ export class Renderer {
     if (so.chance && !this.wasChance) this.chanceAt = now
     this.wasChance = so.chance
 
-    // 플레이어 — 죽으면 파편으로 흩어진다. 대시 중엔 파란 슈퍼 모드(1.5배·선글라스)
+    // 플레이어 — 죽으면 파편으로 흩어진다. 대시 중엔 슈퍼 모드(1.5배·선글라스). 몸색·표정은 계절을 탄다
     if (!dead) {
-      this.drawPlayer(px, py, (so.dashing ? 22 : 15) * s, s, g.body.vel.x, g.holding || so.dashing, so.dashing)
+      this.drawPlayer(px, py, (so.dashing ? 22 : 15) * s, s, g.body.vel.x, g.holding || so.dashing, so.dashing, pal, st, now)
     } else {
-      this.drawDeathWorld(dead, now, toX, toY, s)
+      this.drawDeathWorld(dead, now, toX, toY, s, pal.player)
     }
     ctx.restore()
 
@@ -791,14 +794,21 @@ export class Renderer {
 
   // ── 플레이어·연출 ─────────────────────────────────────────────────
 
-  private drawPlayer(x: number, y: number, r: number, s: number, velX: number, holding: boolean, sonic = false): void {
+  private drawPlayer(
+    x: number, y: number, r: number, s: number, velX: number, holding: boolean, sonic: boolean,
+    pal: Palette, st: SeasonState, now: number,
+  ): void {
     const ctx = this.ctx
-    this.outlinedCircle(x, y, r, sonic ? COL.sonic : COL.player, 3 * s)
+    // 표정은 경계 보간 없이 지배 계절 것 (색만 섞인다)
+    const face: Season = st.blend >= 0.5 ? st.season : st.prev
+    // 겨울: 추워서 덜덜 — 이목구비만 잘게 떤다 (몸은 물리 위치 그대로여야 조작감이 안 흔들린다)
+    const shiver = face === 'winter' && !sonic ? Math.sin(now / 28) * r * 0.05 : 0
+    this.outlinedCircle(x, y, r, sonic ? COL.sonic : pal.player, 3 * s)
     ctx.beginPath()
     ctx.arc(x - r * 0.4, y - r * 0.4, r * 0.3, 0, Math.PI * 2)
-    ctx.fillStyle = sonic ? COL.sonicHi : COL.playerHi
+    ctx.fillStyle = sonic ? COL.sonicHi : pal.playerHi
     ctx.fill()
-    const look = Math.max(-1, Math.min(1, velX / 600)) * r * 0.12
+    const look = Math.max(-1, Math.min(1, velX / 600)) * r * 0.12 + shiver
     if (sonic) {
       // 선글라스 — 렌즈 둘 + 브릿지, 살짝 기울여 속도감
       ctx.save()
@@ -821,23 +831,103 @@ export class Renderer {
       ctx.lineTo(r * 0.9, -r * 0.15)
       ctx.stroke()
       ctx.restore()
-    } else {
-      // 눈은 진행 방향으로 살짝 쏠린다. 홀드 중엔 힘주는 표정(눈 가늘게)
-      ctx.fillStyle = COL.ink
-      for (const dx of [-0.28, 0.32]) {
+      // 슈퍼 모드 입 — 씩 웃음
+      ctx.beginPath()
+      ctx.moveTo(x - r * 0.2 + look, y + r * 0.45)
+      ctx.quadraticCurveTo(x + look, y + r * 0.65, x + r * 0.25 + look, y + r * 0.45)
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = Math.max(1, r * 0.12)
+      ctx.lineCap = 'round'
+      ctx.stroke()
+      return
+    }
+
+    // 봄: 볼 홍조 — 온화함
+    if (face === 'spring') {
+      ctx.fillStyle = 'rgba(255,120,120,0.35)'
+      for (const dx of [-0.55, 0.6]) {
         ctx.beginPath()
-        if (holding) ctx.ellipse(x + dx * r + look, y + r * 0.12, r * 0.13, r * 0.08, 0, 0, Math.PI * 2)
-        else ctx.arc(x + dx * r + look, y + r * 0.12, r * 0.13, 0, Math.PI * 2)
+        ctx.ellipse(x + dx * r + look, y + r * 0.38, r * 0.2, r * 0.12, 0, 0, Math.PI * 2)
         ctx.fill()
       }
     }
-    ctx.beginPath()
-    ctx.moveTo(x - r * 0.2 + look, y + r * 0.45)
-    ctx.quadraticCurveTo(x + look, y + r * 0.65, x + r * 0.25 + look, y + r * 0.45)
+    // 겨울: 코끝·볼이 파랗게 질림
+    if (face === 'winter') {
+      ctx.fillStyle = 'rgba(90,150,220,0.32)'
+      for (const dx of [-0.55, 0.6]) {
+        ctx.beginPath()
+        ctx.ellipse(x + dx * r + look, y + r * 0.38, r * 0.2, r * 0.12, 0, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+
+    // 눈 — 진행 방향으로 살짝 쏠린다. 홀드 중엔 힘주는 표정(눈 가늘게). 여름·겨울은 힘들어서 항상 가늘다
+    const squint = holding || face === 'summer' || face === 'winter'
+    ctx.fillStyle = COL.ink
+    for (const dx of [-0.28, 0.32]) {
+      ctx.beginPath()
+      if (squint) ctx.ellipse(x + dx * r + look, y + r * 0.12, r * 0.13, r * 0.08, 0, 0, Math.PI * 2)
+      else ctx.arc(x + dx * r + look, y + r * 0.12, r * 0.13, 0, Math.PI * 2)
+      ctx.fill()
+    }
     ctx.strokeStyle = COL.ink
-    ctx.lineWidth = Math.max(1, r * 0.12)
     ctx.lineCap = 'round'
-    ctx.stroke()
+    ctx.lineWidth = Math.max(1, r * 0.11)
+    if (face === 'summer' || face === 'winter') {
+      // 힘든 눈썹 — 안쪽이 올라간 八자 (여름: 더위에 지침 / 겨울: 추위에 질림). 바깥이 내려가야 "화남"이 아니라 "괴로움"
+      ctx.beginPath()
+      ctx.moveTo(x - r * 0.48 + look, y - r * 0.06)
+      ctx.lineTo(x - r * 0.14 + look, y - r * 0.24)
+      ctx.moveTo(x + r * 0.52 + look, y - r * 0.06)
+      ctx.lineTo(x + r * 0.18 + look, y - r * 0.24)
+      ctx.stroke()
+    }
+
+    // 입
+    ctx.lineWidth = Math.max(1, r * 0.12)
+    ctx.beginPath()
+    if (face === 'summer') {
+      // 헥헥 — 벌어진 입 (작은 타원)
+      ctx.ellipse(x + r * 0.03 + look, y + r * 0.52, r * 0.16, r * 0.12, 0, 0, Math.PI * 2)
+      ctx.fillStyle = COL.ink
+      ctx.fill()
+    } else if (face === 'winter') {
+      // 덜덜 — 물결 입
+      const y0 = y + r * 0.5
+      const x0 = x - r * 0.28 + look
+      ctx.moveTo(x0, y0)
+      for (let i = 1; i <= 4; i++) ctx.lineTo(x0 + (i * r * 0.56) / 4, y0 + (i % 2 ? -1 : 1) * r * 0.07)
+      ctx.stroke()
+    } else {
+      // 봄·가을: 미소
+      ctx.moveTo(x - r * 0.2 + look, y + r * 0.45)
+      ctx.quadraticCurveTo(x + look, y + r * 0.65, x + r * 0.25 + look, y + r * 0.45)
+      ctx.stroke()
+    }
+
+    // 여름: 땀방울 — 관자놀이에서 맺혀 얼굴 옆으로 흘러내렸다 떨어지는 방울 둘 (주기 어긋남) + 튀는 방울 하나
+    if (face === 'summer') {
+      const drops: Array<[number, number, number]> = [[1, 0, 1100], [-1, 0.45, 1400]]
+      for (const [side, phase, period] of drops) {
+        const t = ((now / period + phase) % 1)
+        const dropR = r * 0.24 * (0.5 + 0.5 * Math.min(1, t * 2)) // 맺히며 커진다
+        const dx = side * r * (1.08 + 0.15 * t)
+        const dy = -r * 0.55 + r * 1.3 * t * t // 아래로 가속
+        const cx = x + dx
+        const cy = y + dy
+        ctx.beginPath()
+        ctx.moveTo(cx, cy - dropR * 1.5)
+        ctx.quadraticCurveTo(cx + dropR * 1.1, cy, cx, cy + dropR)
+        ctx.quadraticCurveTo(cx - dropR * 1.1, cy, cx, cy - dropR * 1.5)
+        ctx.closePath()
+        ctx.fillStyle = '#bfe6ff'
+        ctx.fill()
+        ctx.strokeStyle = COL.ink
+        ctx.lineWidth = Math.max(1, r * 0.07)
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+      }
+    }
   }
 
   /** 충전 링 — 바퀴 수만큼 동심원, 장착되면 노란 오라가 맥동 */
@@ -1013,6 +1103,7 @@ export class Renderer {
     toX: (x: number) => number,
     toY: (y: number) => number,
     s: number,
+    bodyColor: string,
   ): void {
     const ctx = this.ctx
     const dt = Math.min(0.05, (now - d.lastNow) / 1000)
@@ -1027,7 +1118,7 @@ export class Renderer {
       const q = t / 0.6
       ctx.beginPath()
       ctx.arc(toX(d.x), toY(d.y), (20 + 160 * q) * s, 0, Math.PI * 2)
-      ctx.strokeStyle = COL.player
+      ctx.strokeStyle = bodyColor
       ctx.globalAlpha = 0.8 * (1 - q)
       ctx.lineWidth = (7 - 5 * q) * s
       ctx.stroke()
@@ -1036,7 +1127,7 @@ export class Renderer {
     const fade = Math.max(0, 1 - t / 1.4)
     ctx.globalAlpha = fade
     for (const p of d.parts) {
-      this.outlinedCircle(toX(p.x), toY(p.y), p.r * s * (0.4 + 0.6 * fade), COL.player, 1.5 * s)
+      this.outlinedCircle(toX(p.x), toY(p.y), p.r * s * (0.4 + 0.6 * fade), bodyColor, 1.5 * s)
     }
     ctx.globalAlpha = 1
   }
@@ -1349,10 +1440,10 @@ export class Renderer {
     }
     trail.forEach((q, i) => {
       ctx.globalAlpha = Math.max(0, fade) * (0.6 - i * 0.08)
-      this.outlinedCircle(q.x, q.y, 3.5 * u, COL.player, 1 * u)
+      this.outlinedCircle(q.x, q.y, 3.5 * u, pal.player, 1 * u)
     })
     ctx.globalAlpha = Math.max(0, fade)
-    this.drawPlayer(ball.x, ball.y, 13 * u, u, velX * 300, stage !== 1)
+    this.drawPlayer(ball.x, ball.y, 13 * u, u, velX * 300, stage !== 1, false, pal, seasonAt(0), now)
 
     // 손가락: 누르는 동안 아래로 내려가고 터치 링이 퍼진다
     const pressed = stage !== 1
