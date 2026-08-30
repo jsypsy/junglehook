@@ -40,6 +40,8 @@ export const TUNING = {
   maxContinues: 2,
   /** 이어하기 재출발: 마지막으로 지나친 앵커 기준 오프셋과 초기 속도 — 정상 릴리스(+30°, 전방 위)와 같은 궤적 */
   continueSpawn: { dx: 75, dy: 130, vx: 520, vy: -300 },
+  /** 계절 진행 (D-010): stepM마다 봄→여름→가을→겨울, 경계에서 blendM 동안 색 보간 */
+  season: { stepM: 250, blendM: 40 },
   /** 거리 → 미터 환산 (px per m) */
   pxPerMeter: 50,
   /** 타깃 선택: 플레이어 기준 선호 지점 오프셋 (전방·위쪽 바이어스) */

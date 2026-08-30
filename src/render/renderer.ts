@@ -7,8 +7,10 @@
  */
 import type { Game } from '../core/game'
 import { meters } from '../core/game'
+import { SEASON_LABEL, seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
+import { mixHex } from './color'
 
 /** 결과 카드가 필요로 하는 바깥 상태 */
 export interface DeathUi {
@@ -33,17 +35,6 @@ export interface Camera {
 const COL = {
   ink: '#1f3a2a',
   inkSoft: '#4f7f62',
-  skyTop: '#bfe8f5',
-  skyBottom: '#eaf7d6',
-  sun: '#ffe680',
-  sunGlow: '#fff3b0',
-  cloud: '#ffffff',
-  forestFar: '#a9dc8e',
-  forestMid: '#5fbf6e',
-  forestNear: '#2f8f4e',
-  leaf: '#1f6b3c',
-  vine: '#2f8f4e',
-  anchor: '#a0662f',
   rope: '#c98c4b',
   target: '#ffcc33',
   player: '#ff7f3f',
@@ -53,6 +44,34 @@ const COL = {
   scrim: 'rgba(31,58,42,0.35)',
 }
 const FONT = 'system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif'
+
+/** 계절마다 바뀌는 색 (D-010). 외곽선·플레이어·타깃·로프는 고정 */
+interface Palette {
+  skyTop: string
+  skyBottom: string
+  sun: string
+  glow: string
+  cloud: string
+  forestFar: string
+  forestMid: string
+  forestNear: string
+  leaf: string
+  vine: string
+}
+const SEASON_PALETTE: Record<Season, Palette> = {
+  spring: { skyTop: '#bfe8f5', skyBottom: '#eaf7d6', sun: '#ffe680', glow: '#fff3b0', cloud: '#ffffff', forestFar: '#a9dc8e', forestMid: '#5fbf6e', forestNear: '#2f8f4e', leaf: '#1f6b3c', vine: '#2f8f4e' },
+  summer: { skyTop: '#6fc8f2', skyBottom: '#cdeeff', sun: '#ffd23a', glow: '#fff2a8', cloud: '#ffffff', forestFar: '#79c96f', forestMid: '#3aa652', forestNear: '#1f8341', leaf: '#125f2e', vine: '#2a8f45' },
+  autumn: { skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a' },
+  winter: { skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3' },
+}
+function paletteFor(st: SeasonState): Palette {
+  const a = SEASON_PALETTE[st.prev]
+  const b = SEASON_PALETTE[st.season]
+  if (st.blend >= 1 || a === b) return b
+  const out = {} as Palette
+  for (const k of Object.keys(b) as Array<keyof Palette>) out[k] = mixHex(a[k], b[k], st.blend)
+  return out
+}
 
 interface Particle {
   x: number
@@ -88,6 +107,10 @@ const CLOUDS = [
 export class Renderer {
   private trail: Array<{ x: number; y: number }> = []
   private death: DeathFx | null = null
+  /** 계절이 바뀐 순간 — 칩을 잠깐 띄운다 */
+  private lastStage = 0
+  private seasonToastAt = -1e9
+  private seasonToastLabel = ''
   /** 결과 카드 버튼 영역 (화면 px) — 보이는 동안만 채워진다 */
   private deathButtons: { continue: Rect | null; retry: Rect | null } = { continue: null, retry: null }
 
@@ -127,12 +150,24 @@ export class Renderer {
     const dead = this.death
     const deadT = dead ? now - dead.t0 : 0
 
+    // 계절 — 거리로 결정, 경계에서 보간. 진입 순간 칩
+    const st = seasonAt(meters(g))
+    const pal = paletteFor(st)
+    if (g.phase === 'playing' && st.stage !== this.lastStage) {
+      if (st.stage > this.lastStage) {
+        this.seasonToastAt = now
+        this.seasonToastLabel = SEASON_LABEL[st.season]
+      }
+      this.lastStage = st.stage
+    }
+    if (g.phase === 'ready') this.lastStage = 0
+
     ctx.save()
     if (dead && deadT < 350) {
       const k = (1 - deadT / 350) * 9 * u
       ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k)
     }
-    this.drawBackground(cam, w, h, u, topInset)
+    this.drawBackground(cam, w, h, u, topInset, pal)
 
     const toX = (wx: number) => (wx - cam.x) * s
     const toY = (wy: number) => h / 2 + (wy - TUNING.viewH / 2) * s // 줌은 화면 세로 중앙 기준
@@ -140,9 +175,9 @@ export class Renderer {
     // 시작 화면: 무대(배경)만 두고 카드로 간다 — 월드 덩굴이 제목을 가로지르면 어수선하다
     if (g.phase === 'ready') {
       ctx.restore()
-      this.drawForeground(cam, w, h, u)
+      this.drawForeground(cam, w, h, u, pal)
       this.drawHud(g, best, w, h, u, topInset, preset)
-      this.drawReadyScreen(w, h, u, now)
+      this.drawReadyScreen(w, h, u, now, pal)
       return
     }
 
@@ -157,9 +192,9 @@ export class Renderer {
         a.x >= p.x - TUNING.targetBehindLimit &&
         a.y <= p.y - TUNING.targetMinAbove &&
         Math.hypot(a.x - p.x, a.y - p.y) <= TUNING.reach
-      this.drawVine(sx, toY(a.y), s, a.x)
+      this.drawVine(sx, toY(a.y), s, a.x, pal)
       ctx.globalAlpha = reachable || a === target ? 1 : 0.5
-      this.outlinedCircle(sx, toY(a.y), 8 * s, COL.anchor, 2.5 * s)
+      this.drawLoop(sx, toY(a.y), 8 * s, s, pal.vine)
       ctx.globalAlpha = 1
     }
     // 타깃 링 — "지금 누르면 여기에 걸린다"
@@ -209,19 +244,55 @@ export class Renderer {
     }
     ctx.restore()
 
-    this.drawForeground(cam, w, h, u)
+    this.drawForeground(cam, w, h, u, pal)
+    this.drawSnow(st, w, h, u, now)
     this.drawHud(g, best, w, h, u, topInset, preset)
+    this.drawSeasonToast(w, u, topInset, now)
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
+  }
+
+  /** 겨울 눈 — 상태 없는 결정론 패턴(시간·인덱스). 겨울 진행도에 따라 개수·속도가 는다 */
+  private drawSnow(st: SeasonState, w: number, h: number, u: number, now: number): void {
+    const wCur = st.season === 'winter' ? st.blend : 0
+    const wPrev = st.prev === 'winter' && st.blend < 1 ? 1 - st.blend : 0
+    const weight = Math.max(wCur, wPrev)
+    if (weight <= 0) return
+    const intensity = st.season === 'winter' ? st.progress : 1
+    const count = Math.round(18 + 50 * intensity)
+    const t = now / 1000
+    const ctx = this.ctx
+    ctx.globalAlpha = weight * 0.9
+    for (let i = 0; i < count; i++) {
+      const speed = (40 + 50 * intensity) * (0.7 + ((i * 37) % 10) / 20)
+      const x = (((i * 97.3) % w) + Math.sin(t * 0.8 + i) * 14 * u + w) % w
+      const y = (((i * 53.7) % h) + t * speed * u) % h
+      const r = (2 + ((i * 13) % 3)) * u
+      this.outlinedCircle(x, y, r, '#ffffff', 1 * u)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** 계절 진입 칩 — 상단 중앙에서 1.6초 */
+  private drawSeasonToast(w: number, u: number, topInset: number, now: number): void {
+    const t = now - this.seasonToastAt
+    if (t < 0 || t > 1600 || !this.seasonToastLabel) return
+    const ctx = this.ctx
+    const a = t < 200 ? t / 200 : t > 1200 ? 1 - (t - 1200) / 400 : 1
+    ctx.save()
+    ctx.globalAlpha = clamp01(a)
+    ctx.translate(w / 2, topInset + 86 * u - (1 - clamp01(a)) * 8 * u)
+    this.pill(this.seasonToastLabel, 0, 0, `900 ${Math.round(16 * u)}px ${FONT}`, COL.card, COL.ink, 16 * u, 3 * u, u, false, 36 * u)
+    ctx.restore()
   }
 
   // ── 배경 ─────────────────────────────────────────────────────────
 
   /** 하늘·태양·구름·3겹 숲 — 화면 공간, 카메라 x로 패럴랙스 */
-  private drawBackground(cam: Camera, w: number, h: number, u: number, topInset: number): void {
+  private drawBackground(cam: Camera, w: number, h: number, u: number, topInset: number, pal: Palette): void {
     const ctx = this.ctx
     const grad = ctx.createLinearGradient(0, 0, 0, h)
-    grad.addColorStop(0, COL.skyTop)
-    grad.addColorStop(1, COL.skyBottom)
+    grad.addColorStop(0, pal.skyTop)
+    grad.addColorStop(1, pal.skyBottom)
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
@@ -230,28 +301,28 @@ export class Renderer {
     const sunY = topInset + 96 * u
     ctx.beginPath()
     ctx.arc(sunX, sunY, 54 * u, 0, Math.PI * 2)
-    ctx.fillStyle = COL.sunGlow
+    ctx.fillStyle = pal.glow
     ctx.globalAlpha = 0.9
     ctx.fill()
     ctx.globalAlpha = 1
-    this.outlinedCircle(sunX, sunY, 40 * u, COL.sun, 3 * u)
+    this.outlinedCircle(sunX, sunY, 40 * u, pal.sun, 3 * u)
 
     // 구름 (패럴랙스 0.15, 주기 반복)
     const period = CLOUD_PERIOD * u
     const off = ((-cam.x * 0.15 * u) % period + period) % period
     for (let k = -1; k * period + off < w + period; k++) {
       for (const c of CLOUDS) {
-        this.drawCloud(k * period + off + c.x * u, topInset * 0.4 + c.y * u, c.k * u)
+        this.drawCloud(k * period + off + c.x * u, topInset * 0.4 + c.y * u, c.k * u, pal.cloud)
       }
     }
 
     // 숲 3겹 — 화면 아래에서 솟는 물결. 멀수록 연하고 느리다
-    this.drawForestBand(cam, w, h, u, 0.694, 0.3, 22, 95, COL.forestFar)
-    this.drawForestBand(cam, w, h, u, 0.775, 0.5, 20, 80, COL.forestMid)
-    this.drawForestBand(cam, w, h, u, 0.855, 0.75, 18, 70, COL.forestNear)
+    this.drawForestBand(cam, w, h, u, 0.694, 0.3, 22, 95, pal.forestFar)
+    this.drawForestBand(cam, w, h, u, 0.775, 0.5, 20, 80, pal.forestMid)
+    this.drawForestBand(cam, w, h, u, 0.855, 0.75, 18, 70, pal.forestNear)
   }
 
-  private drawCloud(x: number, y: number, k: number): void {
+  private drawCloud(x: number, y: number, k: number, fill: string): void {
     const ctx = this.ctx
     // 세 원의 합집합 — 굵은 외곽선을 먼저 그리고 흰 몸통으로 안쪽 선을 덮는다
     const lobes = [
@@ -271,7 +342,7 @@ export class Renderer {
       ctx.fill()
     }
     pass(COL.ink, 3 * k)
-    pass(COL.cloud, 0)
+    pass(fill, 0)
   }
 
   private drawForestBand(
@@ -305,11 +376,11 @@ export class Renderer {
   }
 
   /** 앞쪽 잎 — 화면 아래 모서리, 플레이어보다 앞에 그려 깊이를 만든다 */
-  private drawForeground(cam: Camera, w: number, h: number, u: number): void {
+  private drawForeground(cam: Camera, w: number, h: number, u: number, pal: Palette): void {
     const ctx = this.ctx
     const period = 520 * u
     const off = ((-cam.x * 1.15 * u) % period + period) % period
-    ctx.fillStyle = COL.leaf
+    ctx.fillStyle = pal.leaf
     ctx.strokeStyle = COL.ink
     ctx.lineWidth = 3 * u
     ctx.lineJoin = 'round'
@@ -329,23 +400,43 @@ export class Renderer {
   }
 
   /** 앵커까지 화면 위에서 내려오는 덩굴 + 잎 한 장 */
-  private drawVine(sx: number, ay: number, s: number, seed: number): void {
+  private drawVine(sx: number, ay: number, s: number, seed: number, pal: Palette): void {
     const ctx = this.ctx
     const bend = (Math.sin(seed * 0.37) * 10 + 8) * s
     ctx.lineCap = 'round'
     ctx.beginPath()
     ctx.moveTo(sx + bend * 0.3, -10)
     ctx.bezierCurveTo(sx + bend, ay * 0.35, sx - bend, ay * 0.7, sx, ay - 8 * s)
-    ctx.strokeStyle = COL.vine
+    ctx.strokeStyle = pal.vine
     ctx.lineWidth = 4 * s
     ctx.stroke()
     const ly = ay * 0.45
     ctx.beginPath()
     ctx.ellipse(sx + bend * 0.6 + 6 * s, ly, 10 * s, 5 * s, -0.5, 0, Math.PI * 2)
-    ctx.fillStyle = COL.forestMid
+    ctx.fillStyle = pal.forestMid
     ctx.fill()
     ctx.strokeStyle = COL.ink
     ctx.lineWidth = 2 * s
+    ctx.stroke()
+  }
+
+  /** 앵커 = 덩굴 끝이 말려 만든 고리 — 덩굴과 같은 색, 가운데가 비어 "여기에 건다"가 읽힌다 (D-010) */
+  private drawLoop(x: number, y: number, r: number, s: number, vine: string): void {
+    const ctx = this.ctx
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 7.5 * s
+    ctx.stroke()
+    ctx.strokeStyle = vine
+    ctx.lineWidth = 4 * s
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.ellipse(x + r * 1.4, y - r * 0.9, 6 * s, 3 * s, -0.6, 0, Math.PI * 2)
+    ctx.fillStyle = vine
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 1.5 * s
     ctx.stroke()
   }
 
@@ -590,7 +681,7 @@ export class Renderer {
   }
 
   /** 시작 화면: 제목 + 사용법 루프 데모 카드 + CTA (스크림 없음 — 무대가 그대로 보인다) */
-  private drawReadyScreen(w: number, h: number, u: number, now: number): void {
+  private drawReadyScreen(w: number, h: number, u: number, now: number, pal: Palette): void {
     const ctx = this.ctx
     const cx = w / 2
     const cardW = 320 * u
@@ -624,9 +715,9 @@ export class Renderer {
     }
     ctx.lineTo(cardX + cardW, cardY + cardH)
     ctx.closePath()
-    ctx.fillStyle = COL.forestFar
+    ctx.fillStyle = pal.forestFar
     ctx.fill()
-    this.drawStartDemo({ x: cardX, y: cardY, w: cardW, h: cardH }, u, now)
+    this.drawStartDemo({ x: cardX, y: cardY, w: cardW, h: cardH }, u, now, pal)
     ctx.restore()
 
     // CTA
@@ -642,7 +733,7 @@ export class Renderer {
    * 데모 루프(4.6s): ① 누르면 공이 로프에 매달려 앞으로 흔들리고 ② 떼면 포물선으로 날아
    * ③ 다시 누르면 다음 앵커에 매달려 스윙한다. 끝에 짧게 페이드해 반복이 자연스럽게 이어진다
    */
-  private drawStartDemo(d: { x: number; y: number; w: number; h: number }, u: number, now: number): void {
+  private drawStartDemo(d: { x: number; y: number; w: number; h: number }, u: number, now: number, pal: Palette): void {
     const ctx = this.ctx
     const LOOP = 4600
     const t = now % LOOP
@@ -708,11 +799,11 @@ export class Renderer {
       ctx.beginPath()
       ctx.moveTo(a.x, d.y - 4 * u)
       ctx.quadraticCurveTo(a.x + 5 * u, (d.y + a.y) / 2, a.x, a.y - 7 * u)
-      ctx.strokeStyle = COL.vine
+      ctx.strokeStyle = pal.vine
       ctx.lineWidth = 3.5 * u
       ctx.lineCap = 'round'
       ctx.stroke()
-      this.outlinedCircle(a.x, a.y, 7 * u, COL.anchor, 2.5 * u)
+      this.drawLoop(a.x, a.y, 7 * u, u, pal.vine)
     }
     const grabFlash = stage === 2 ? Math.max(0, 1 - (t - FLY_END) / 220) : 0
     if (stage === 1 || grabFlash > 0) {
