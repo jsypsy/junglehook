@@ -53,8 +53,10 @@ export interface SonicState {
   uses: number
   /** 장착 후 흐른 시간 (s) — 게이지 마커 위치의 근거 */
   gaugeT: number
-  /** 계절 단계별 찬스 앵커 인덱스 (아직 못 정했으면 없음) */
-  chanceAnchor: Record<number, number>
+  /** 계절 단계별로 지금까지 잡은 서로 다른 앵커 수 — k번째에서 찬스가 터진다 (D-015) */
+  grabsInStage: Record<number, number>
+  /** 마지막으로 잡은 앵커 인덱스 — 같은 앵커 재잡기는 안 센다 */
+  lastGrabIdx: number
   /** 찬스를 쓴(잡았다 놓은) 계절 단계 */
   usedStage: Record<number, true>
   /** 지금 찬스 앵커에 매달려 있다 — 이때만 충전된다 */
@@ -64,7 +66,7 @@ export interface SonicState {
 }
 
 export function createSonic(): SonicState {
-  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, chanceAnchor: {}, usedStage: {}, chance: false, freezeT: 0 }
+  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, grabsInStage: {}, lastGrabIdx: -1, usedStage: {}, chance: false, freezeT: 0 }
 }
 
 /** 계절 단계 번호 (거리 기준, season.stepM) */
@@ -73,38 +75,13 @@ function stageOfX(x: number): number {
 }
 
 /**
- * 이 계절 단계의 찬스 앵커 — 단계마다 하나, 시드+단계로 결정되는 랜덤 위치에 가장 가까운 앵커.
- * 앵커가 그 위치까지 생성돼 있어야 정해지므로 필요할 때 생성해 둔다
+ * 이 계절 단계에서 찬스가 터지는 "몇 번째 잡기"인가 — 시드+단계로 결정되는 랜덤 (D-015).
+ * 앵커 위치가 아니라 잡기 순서에 걸려 있어 찬스는 계절마다 반드시 손에 들어온다 (앵커를 k개 이상 잡는 한)
  */
-export function sonicChanceAnchor(g: Game, stage: number): number {
-  const s = g.sonic
-  const known = s.chanceAnchor[stage]
-  if (known !== undefined) return known
-  const stepPx = TUNING.season.stepM * TUNING.pxPerMeter
-  const start = TUNING.startPos.x + stage * stepPx
+export function sonicChanceK(g: Game, stage: number): number {
+  const { chanceGrabMin, chanceGrabMax } = TUNING.sonic
   const r = new Rng((g.seed ^ (stage * 7919 + 13)) >>> 0)
-  const target = start + stepPx * r.range(TUNING.sonic.chanceFrom, TUNING.sonic.chanceTo)
-  g.field.ensure(target + 400)
-  let best = -1
-  let bestD = Infinity
-  g.field.anchors.forEach((a, i) => {
-    const d = Math.abs(a.x - target)
-    if (d < bestD) {
-      bestD = d
-      best = i
-    }
-  })
-  s.chanceAnchor[stage] = best
-  return best
-}
-
-/** 이 앵커 인덱스가 아직 안 쓴 찬스 앵커인가 (렌더러가 금색으로 표시) */
-export function isChanceAnchor(g: Game, idx: number): boolean {
-  const a = g.field.anchors[idx]
-  if (!a) return false
-  const stage = stageOfX(a.x)
-  if (g.sonic.usedStage[stage]) return false
-  return sonicChanceAnchor(g, stage) === idx
+  return chanceGrabMin + r.int(chanceGrabMax - chanceGrabMin + 1)
 }
 
 /** 게이지 마커 위치 0~1 — 삼각파로 왕복 */
@@ -324,9 +301,14 @@ export function update(g: Game, dt: number): void {
     if (!hadAnchor) {
       s.spin = 0
       s.loops = 0
-      // 방금 잡은 앵커가 이 계절의 찬스 앵커면 알림 + 충전 허용
+      // 이 계절에서 k번째로 잡은 (서로 다른) 앵커면 찬스 — 알림 + 충전 허용 (D-015)
       const idx = g.field.anchors.findIndex((a) => a.x === g.body.anchor!.x && a.y === g.body.anchor!.y)
-      s.chance = idx >= 0 && isChanceAnchor(g, idx)
+      const stage = stageOfX(g.body.anchor.x)
+      if (idx !== s.lastGrabIdx) {
+        s.grabsInStage[stage] = (s.grabsInStage[stage] ?? 0) + 1
+        s.lastGrabIdx = idx
+      }
+      s.chance = !s.usedStage[stage] && s.grabsInStage[stage] === sonicChanceK(g, stage)
       if (s.chance) {
         s.freezeT = TUNING.sonic.freezeSec
         // 폭풍은 찬스에 놀라 물러난다 — 매달려 충전하는 동안(chance) 전진·잡힘 판정 모두 멈춘다 (BUILD 21)

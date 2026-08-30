@@ -6,7 +6,7 @@
  * 문법: 굵은 외곽선(#1f3a2a)·평면 색·둥근 형태·흰 카드 + 오프셋 그림자. 웹폰트 없음.
  */
 import type { Game } from '../core/game'
-import { isChanceAnchor, meters, sonicInSweet, sonicMarker, threatGap } from '../core/game'
+import { meters, sonicInSweet, sonicMarker, threatGap } from '../core/game'
 import { dayLabel, daysOf, seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
@@ -194,7 +194,8 @@ export class Renderer {
         a.y <= p.y - TUNING.targetMinAbove &&
         Math.hypot(a.x - p.x, a.y - p.y) <= TUNING.reach
       this.drawVine(sx, toY(a.y), s, a.x, pal)
-      const chance = isChanceAnchor(g, list.indexOf(a))
+      // 찬스는 잡는 순간 정해진다(D-015) — 지금 매달린 잎이 찬스면 금빛으로
+      const chance = g.sonic.chance && !!g.body.anchor && a.x === g.body.anchor.x && a.y === g.body.anchor.y
       if (chance) {
         // 소닉 찬스 잎 — 금빛 후광이 숨 쉰다
         const pulse = 0.8 + 0.2 * Math.sin(now / 160)
