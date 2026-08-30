@@ -8,7 +8,7 @@ _Last updated: 2026-08-30_
 ```
 컨셉       원버튼 그래플 스윙 (홀드=로프+감기+펌프, 릴리스=관성 발사). D-001, D-005, D-006
 이름       정글훅 / junglehook — 충돌 검색 완료. GRAC 제명은 신청 직전 재확인 (D-002)
-코드       BUILD 13 — 캐노피 배경(D-011, 가을 낙엽·계절 태양 크기) + 사계절(D-010, 250m·oklab·벚꽃/눈·계절 태양) + 잎 앵커 +
+코드       BUILD 14 — 소닉 파워(D-012, 3바퀴→250m 로켓 대시) + 캐노피 배경(D-011, 가을 낙엽·계절 태양 크기) + 사계절(D-010, 250m·oklab·벚꽃/눈·계절 태양) + 잎 앵커 +
            이어하기 광고 루프(D-009) + 카툰 렌더러(D-008) + 충전기 물리·`?p=b4` (D-006/7). 테스트 37개
 실플레이   BUILD 1: 156m→206m(≈15s). 피드백은 전부 D-006/7에 반영됨. BUILD 8은 미판정
 콘솔       junglehook 등록됨 · 테스트 배포 7회 (최신 BUILD 13) — tools/latest-deployment.json
@@ -24,8 +24,8 @@ _Last updated: 2026-08-30_
    - 카툰 비주얼: HUD 칩·숲 띠 배치 / 캐릭터 얼굴 / **성능**(구름·숲 물결 매 프레임 path)
    - 손맛: 기본(충전기) vs `/?p=b4` 5판씩. 한 판 30~60초인가
 2. 사계절·캐노피(BUILD 11) 실기기 확인: 250m 경계 보간, 겨울 눈 가독성, 캐노피 층 성능(맥 0.67ms/프레임).
-   **계절별 게임 규칙 변화** 채택 여부 대기: 여름 바람 / 가을 떨어지는 잎(재잡기 불가) / 겨울 언 덩굴(감기 절반)
-   — 고르면 core에 계절 modifier로 구현 (D-011 보류 항목)
+   **소닉 파워(BUILD 14) 손맛 판정**: 3바퀴(≈7.5초 홀드)가 너무 긴지, 250m 대시가 과한지 — `tuning.sonic`
+   (loopsToArm·dashMeters·dashSpeed·cruiseY·exitVel)으로 조정. 계절별 규칙 변화(여름 바람 등)는 보류
 3. 튜닝 노브 (`src/core/tuning.ts`): rigidRope · swingPump 200 · swingMaxSpeed 1050 · minRope 130 ·
    airDrag 0.2 · reach 450 · targetBehindLimit 120 · maxContinues 2 · continueSpawn · camZoom · rampX 18000
 4. Phase 1 잔여: 효과음 교체(sound.ts, 광고 중 mute) · 점수 제출(플레이 완료 후) · 뒤로가기 확인 모달 ·

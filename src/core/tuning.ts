@@ -42,6 +42,21 @@ export const TUNING = {
   continueSpawn: { dx: 75, dy: 130, vx: 520, vy: -300 },
   /** 계절 진행 (D-010): stepM마다 봄→여름→가을→겨울, 경계에서 blendM 동안 색 보간 */
   season: { stepM: 250, blendM: 40 },
+  /** 소닉 파워 (D-012): 한 앵커에서 loopsToArm바퀴 돌면 장착, 놓으면 로켓처럼 직선 대시 */
+  sonic: {
+    loopsToArm: 3,
+    /** 대시 거리 (m) */
+    dashMeters: 250,
+    /** 대시 속도 (px/s) — 250m를 5초에 */
+    dashSpeed: 2500,
+    /** 대시 중 순항 고도 (px) — 앞부분에서 여기로 떠오른다 */
+    cruiseY: 230,
+    /** 대시가 끝날 때 이어지는 일반 비행 속도 — 다음 잎을 잡을 시간을 준다 */
+    exitVel: { x: 650, y: -260 },
+    /** 타이밍 게이지: 마커가 왕복하는 주기(Hz)와 성공 구간 반폭(0~0.5). 구간 밖에서 놓으면 충전 소멸 */
+    gaugeHz: 0.7,
+    sweetHalf: 0.08,
+  },
   /** 거리 → 미터 환산 (px per m) */
   pxPerMeter: 50,
   /** 타깃 선택: 플레이어 기준 선호 지점 오프셋 (전방·위쪽 바이어스) */

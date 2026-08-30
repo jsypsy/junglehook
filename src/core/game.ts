@@ -26,8 +26,49 @@ export interface Game {
   distancePx: number
   /** 이번 판에 쓴 이어하기 횟수 */
   continues: number
+  /** 소닉 파워 상태 */
+  sonic: SonicState
   /** 이번 런 경과 시간 (초) — 세션 길이 계측용 */
   timeSec: number
+}
+
+export interface SonicState {
+  /** 현재 앵커에서 누적된 회전각 (rad, 부호 있음) — 잡을 때 0 */
+  spin: number
+  /** 현재 앵커에서 완주한 바퀴 수 */
+  loops: number
+  /** 장착됨 — 다음 릴리스에 대시 */
+  armed: boolean
+  /** 대시 중 */
+  dashing: boolean
+  /** 남은 대시 거리 (px) */
+  dashLeftPx: number
+  /** 이번 판 대시 횟수 */
+  uses: number
+  /** 장착 후 흐른 시간 (s) — 게이지 마커 위치의 근거 */
+  gaugeT: number
+}
+
+export function createSonic(): SonicState {
+  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0 }
+}
+
+/** 게이지 마커 위치 0~1 — 삼각파로 왕복 */
+export function sonicMarker(g: Game): number {
+  const x = (g.sonic.gaugeT * TUNING.sonic.gaugeHz * 2) % 2
+  return 1 - Math.abs(x - 1)
+}
+
+/** 지금 놓으면 발동하는가 — 마커가 가운데 성공 구간 안 */
+export function sonicInSweet(g: Game): boolean {
+  return Math.abs(sonicMarker(g) - 0.5) <= TUNING.sonic.sweetHalf
+}
+
+/** 앵커 기준 각도 (아래 = 0, 앞쪽이 +) */
+function swingAngle(g: Game): number {
+  const b = g.body
+  if (!b.anchor) return 0
+  return Math.atan2(b.pos.x - b.anchor.x, b.pos.y - b.anchor.y)
 }
 
 export function createGame(seed: number): Game {
@@ -41,6 +82,7 @@ export function createGame(seed: number): Game {
     targetIdx: null,
     distancePx: 0,
     continues: 0,
+    sonic: createSonic(),
     timeSec: 0,
   }
 }
@@ -112,13 +154,58 @@ export function continueRun(g: Game): boolean {
 
 export function releaseInput(g: Game): void {
   g.holding = false
-  if (g.phase === 'playing') release(g.body)
+  if (g.phase !== 'playing') return
+  const s = g.sonic
+  if (g.body.anchor && s.armed) {
+    const hit = sonicInSweet(g)
+    s.armed = false
+    s.loops = 0
+    s.spin = 0
+    s.gaugeT = 0
+    if (!hit) {
+      // 타이밍 실패 — 일반 릴리스, 충전은 사라진다
+      release(g.body)
+      return
+    }
+    // 소닉 대시 시작 — 규칙 무시: 중력·잡기 없이 앞으로 직진
+    release(g.body)
+    s.dashing = true
+    s.dashLeftPx = TUNING.sonic.dashMeters * TUNING.pxPerMeter
+    s.uses += 1
+    g.body.vel = { x: TUNING.sonic.dashSpeed, y: 0 }
+    return
+  }
+  release(g.body)
+}
+
+/** 대시 진행 — 순항 고도로 떠오르며 직진, 거리를 다 쓰면 일반 비행으로 이어진다 */
+function updateDash(g: Game, dt: number): void {
+  const s = g.sonic
+  const b = g.body
+  const step = TUNING.sonic.dashSpeed * dt
+  b.pos.x += step
+  b.pos.y += (TUNING.sonic.cruiseY - b.pos.y) * Math.min(1, dt * 3)
+  b.vel.x = TUNING.sonic.dashSpeed
+  b.vel.y = 0
+  s.dashLeftPx -= step
+  if (s.dashLeftPx <= 0) {
+    s.dashing = false
+    b.vel = { ...TUNING.sonic.exitVel }
+  }
 }
 
 export function update(g: Game, dt: number): void {
   if (g.phase !== 'playing') return
   g.timeSec += dt
   g.field.ensure(g.body.pos.x + TUNING.viewW * 2.5)
+  if (g.sonic.dashing) {
+    g.targetIdx = null
+    updateDash(g, dt)
+    g.distancePx = Math.max(0, g.body.pos.x - TUNING.startPos.x)
+    return
+  }
+  const hadAnchor = g.body.anchor
+  const angBefore = swingAngle(g)
   g.targetIdx = g.body.anchor ? null : selectTarget(g)
   const target = g.targetIdx !== null ? g.field.anchors[g.targetIdx] : undefined
   if (g.holding && !g.body.anchor && target) {
@@ -132,6 +219,28 @@ export function update(g: Game, dt: number): void {
   }
   stepBody(g.body, TUNING.gravity, dt, g.body.anchor ? TUNING.ropeDrag : TUNING.airDrag, TUNING.rigidRope)
   g.distancePx = Math.max(0, g.body.pos.x - TUNING.startPos.x)
+  // 소닉 충전: 같은 앵커에서 누적 회전각으로 바퀴 수를 센다 (새로 잡으면 0부터)
+  const s = g.sonic
+  if (g.body.anchor) {
+    if (!hadAnchor) {
+      s.spin = 0
+      s.loops = 0
+    } else {
+      let d = swingAngle(g) - angBefore
+      if (d > Math.PI) d -= Math.PI * 2
+      if (d < -Math.PI) d += Math.PI * 2
+      s.spin += d
+      s.loops = Math.floor(Math.abs(s.spin) / (Math.PI * 2))
+      if (!s.armed && s.loops >= TUNING.sonic.loopsToArm) {
+        s.armed = true
+        s.gaugeT = 0
+      }
+      if (s.armed) s.gaugeT += dt
+    }
+  } else if (!s.armed) {
+    s.spin = 0
+    s.loops = 0
+  }
   if (g.body.pos.y > TUNING.killY) {
     g.phase = 'dead'
     g.holding = false

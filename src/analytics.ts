@@ -76,13 +76,14 @@ export class Analytics {
   }
 
   /** 게임오버 — 판 전체를 요약하는 유일한 이벤트 */
-  gameOver(info: { score: number; isBest: boolean; continued: boolean }, now: number): void {
+  gameOver(info: { score: number; isBest: boolean; continued: boolean; sonic?: number }, now: number): void {
     this.send('game_over', {
       score: info.score,
       score_band: scoreBand(info.score),
       play_sec: this.startedAt > 0 ? Math.round((now - this.startedAt) / 1000) : 0,
       is_best: info.isBest,
       continued: info.continued,
+      sonic: info.sonic ?? 0,
     })
     this.startedAt = 0
   }

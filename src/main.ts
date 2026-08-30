@@ -139,7 +139,7 @@ function tick(now: number, dt: number): void {
           pendingBest = m
         }
         bestSaved = true
-        analytics.gameOver({ score: m, isBest, continued: game.continues > 0 }, now)
+        analytics.gameOver({ score: m, isBest, continued: game.continues > 0, sonic: game.sonic.uses }, now)
       }
     } else {
       analytics.tick(now, meters(game))

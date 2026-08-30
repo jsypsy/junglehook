@@ -6,7 +6,7 @@
  * 문법: 굵은 외곽선(#1f3a2a)·평면 색·둥근 형태·흰 카드 + 오프셋 그림자. 웹폰트 없음.
  */
 import type { Game } from '../core/game'
-import { meters } from '../core/game'
+import { meters, sonicInSweet, sonicMarker } from '../core/game'
 import { seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
@@ -226,9 +226,19 @@ export class Renderer {
       ctx.stroke()
     }
 
+    // 소닉 파워 — 충전 링·장착 오라·대시 잔상/불꽃
+    const so = g.sonic
+    const px = toX(g.body.pos.x)
+    const py = toY(g.body.pos.y)
+    if (!dead && so.dashing) {
+      this.drawMotionBlur()
+      this.drawDashFx(px, py, s, w, h, now)
+    }
+    if (!dead && g.body.anchor && (so.loops > 0 || so.armed)) this.drawChargeRings(px, py, s, so.loops, so.armed, now)
+
     // 플레이어 — 죽으면 파편으로 흩어진다
     if (!dead) {
-      this.drawPlayer(toX(g.body.pos.x), toY(g.body.pos.y), 15 * s, s, g.body.vel.x, g.holding)
+      this.drawPlayer(px, py, 15 * s, s, g.body.vel.x, g.holding || so.dashing)
     } else {
       this.drawDeathWorld(dead, now, toX, toY, s)
     }
@@ -237,7 +247,65 @@ export class Renderer {
     this.drawForeground(cam, w, h, u, pal)
     this.drawSnow(st, w, h, u, now)
     this.drawHud(g, best, w, h, u, topInset, preset)
+    if (!dead && so.armed && g.body.anchor) this.drawSonicGauge(g, w, u, topInset)
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
+  }
+
+  /** 플래시처럼 주변이 뭉개지는 모션 블러 — 지금까지 그린 장면을 옆으로 밀어 겹친다 (플레이어는 이 뒤에 선명하게) */
+  private drawMotionBlur(): void {
+    const ctx = this.ctx
+    const cv = ctx.canvas
+    ctx.save()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    for (const [shift, a] of [[18, 0.35], [40, 0.22], [70, 0.12]] as const) {
+      ctx.globalAlpha = a
+      ctx.drawImage(cv, -shift * (cv.width / 393), 0)
+    }
+    ctx.restore()
+  }
+
+  /** 타이밍 게이지 — 장착되면 상단에 나타나고, 마커가 왕복한다. 노란 구간 안에서 놓아야 발동 */
+  private drawSonicGauge(g: Game, w: number, u: number, topInset: number): void {
+    const ctx = this.ctx
+    const gw = 220 * u
+    const gh = 16 * u
+    const x = w / 2 - gw / 2
+    const y = topInset + 64 * u
+    const sweet = TUNING.sonic.sweetHalf
+    const inSweet = sonicInSweet(g)
+    // 틀
+    this.chip(x, y, gw, gh, COL.card, 3 * u)
+    // 성공 구간
+    ctx.save()
+    this.roundRect(x, y, gw, gh, gh / 2)
+    ctx.clip()
+    ctx.fillStyle = COL.target
+    ctx.fillRect(x + gw * (0.5 - sweet), y, gw * sweet * 2, gh)
+    ctx.restore()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 1.2 * u
+    ctx.beginPath()
+    ctx.moveTo(x + gw * (0.5 - sweet), y)
+    ctx.lineTo(x + gw * (0.5 - sweet), y + gh)
+    ctx.moveTo(x + gw * (0.5 + sweet), y)
+    ctx.lineTo(x + gw * (0.5 + sweet), y + gh)
+    ctx.stroke()
+    // 마커
+    const mx = x + gw * sonicMarker(g)
+    ctx.beginPath()
+    this.roundRect(mx - 4 * u, y - 6 * u, 8 * u, gh + 12 * u, 3 * u)
+    ctx.fillStyle = inSweet ? COL.target : COL.player
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 2 * u
+    ctx.stroke()
+    if (inSweet) {
+      ctx.beginPath()
+      ctx.arc(mx, y - 14 * u, 5 * u, 0, Math.PI * 2)
+      ctx.fillStyle = COL.target
+      ctx.fill()
+      ctx.stroke()
+    }
   }
 
   /** 계절 입자 — 겨울 눈(갈수록 거세짐), 가을 낙엽. 상태 없는 결정론 패턴(시간·인덱스). 봄 꽃잎은 지저분해 제거 */
@@ -695,6 +763,77 @@ export class Renderer {
     ctx.stroke()
   }
 
+  /** 충전 링 — 바퀴 수만큼 동심원, 장착되면 노란 오라가 맥동 */
+  private drawChargeRings(x: number, y: number, s: number, loops: number, armed: boolean, now: number): void {
+    const ctx = this.ctx
+    const n = Math.min(loops, TUNING.sonic.loopsToArm)
+    if (armed) {
+      const pulse = 0.85 + 0.15 * Math.sin(now / 90)
+      ctx.beginPath()
+      ctx.arc(x, y, 30 * s * pulse, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(255,204,51,0.35)'
+      ctx.fill()
+      // 스파크 — 돌아가는 점 6개
+      for (let i = 0; i < 6; i++) {
+        const a = now / 140 + (i * Math.PI) / 3
+        this.outlinedCircle(x + Math.cos(a) * 38 * s, y + Math.sin(a) * 38 * s, 3.5 * s, COL.target, 1.2 * s)
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      ctx.beginPath()
+      ctx.arc(x, y, (21 + i * 6) * s, 0, Math.PI * 2)
+      ctx.strokeStyle = armed ? COL.target : COL.player
+      ctx.globalAlpha = armed ? 0.9 : 0.55
+      ctx.lineWidth = 2.5 * s
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** 대시 연출 — 잔상·로켓 불꽃·화면 속도선 */
+  private drawDashFx(x: number, y: number, s: number, w: number, h: number, now: number): void {
+    const ctx = this.ctx
+    // 속도선 (화면 공간)
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'
+    ctx.lineCap = 'round'
+    for (let i = 0; i < 14; i++) {
+      const ly = ((i * 71.7) % h)
+      const len = (60 + ((i * 37) % 5) * 30) * s
+      const off = ((now * (1.2 + ((i * 13) % 4) * 0.4)) % (w + len))
+      ctx.lineWidth = (1.5 + ((i * 7) % 3)) * s
+      ctx.beginPath()
+      ctx.moveTo(w - off, ly)
+      ctx.lineTo(w - off + len, ly)
+      ctx.stroke()
+    }
+    // 잔상
+    for (let i = 1; i <= 5; i++) {
+      ctx.globalAlpha = 0.28 - i * 0.045
+      ctx.beginPath()
+      ctx.arc(x - i * 22 * s, y, (15 - i * 1.5) * s, 0, Math.PI * 2)
+      ctx.fillStyle = COL.player
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1
+    // 로켓 불꽃 — 뒤로 뻗는 삼각 불꽃 두 겹, 깜빡임
+    const flick = 0.8 + 0.2 * Math.sin(now / 35)
+    const flame = (len: number, half: number, fill: string) => {
+      ctx.beginPath()
+      ctx.moveTo(x - 12 * s, y - half)
+      ctx.lineTo(x - 12 * s - len * flick, y)
+      ctx.lineTo(x - 12 * s, y + half)
+      ctx.closePath()
+      ctx.fillStyle = fill
+      ctx.fill()
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 2 * s
+      ctx.lineJoin = 'round'
+      ctx.stroke()
+    }
+    flame(52 * s, 12 * s, COL.player)
+    flame(30 * s, 6 * s, COL.target)
+  }
+
   private startDeath(g: Game, now: number): DeathFx {
     const parts: Particle[] = []
     for (let i = 0; i < 24; i++) {
@@ -815,7 +954,8 @@ export class Renderer {
       ctx.translate(cx, cardY + 122 * u)
       const pulse = isBest ? 1 + 0.05 * Math.sin(deadT / 120) : 1
       ctx.scale(easeOutBack(bp) * pulse, easeOutBack(bp) * pulse)
-      this.pill(isBest ? '신기록!' : `최고 ${best}m`, 0, 0, `800 ${Math.round(14 * u)}px ${FONT}`, COL.target, COL.ink, 12 * u, 0, u, true)
+      const sonicTag = g.sonic.uses > 0 ? `  ·  소닉 ×${g.sonic.uses}` : ''
+      this.pill((isBest ? '신기록!' : `최고 ${best}m`) + sonicTag, 0, 0, `800 ${Math.round(14 * u)}px ${FONT}`, COL.target, COL.ink, 12 * u, 0, u, true)
       ctx.restore()
     }
     ctx.restore()
