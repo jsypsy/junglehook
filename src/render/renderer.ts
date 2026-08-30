@@ -114,6 +114,9 @@ const CLOUDS = [
 export class Renderer {
   private trail: Array<{ x: number; y: number }> = []
   private death: DeathFx | null = null
+  /** 소닉 찬스 알림 배지가 뜬 시각 (찬스 잎에 걸린 순간) */
+  private chanceAt = -1e9
+  private wasChance = false
   /** 결과 카드 버튼 영역 (화면 px) — 보이는 동안만 채워진다 */
   private deathButtons: { continue: Rect | null; retry: Rect | null } = { continue: null, retry: null }
 
@@ -250,6 +253,8 @@ export class Renderer {
     }
     if (!dead && g.body.anchor && (so.loops > 0 || so.armed)) this.drawChargeRings(px, py, s, so.loops, so.armed, now)
     if (!dead && so.freezeT > 0 && g.body.anchor) this.drawChanceBurst(toX(g.body.anchor.x), toY(g.body.anchor.y), s, w, h, so.freezeT)
+    if (so.chance && !this.wasChance) this.chanceAt = now
+    this.wasChance = so.chance
 
     // 플레이어 — 죽으면 파편으로 흩어진다. 대시 중엔 파란 슈퍼 모드(1.5배·선글라스)
     if (!dead) {
@@ -263,7 +268,40 @@ export class Renderer {
     this.drawSnow(st, w, h, u, now)
     this.drawHud(g, best, w, h, u, topInset, preset)
     if (!dead && so.armed && g.body.anchor) this.drawSonicGauge(g, w, u, topInset)
+    if (!dead) this.drawChanceCallout(w, h, u, now)
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
+  }
+
+  /** "SUPER!" 카툰 배지 — 찬스 잎에 걸린 순간 튀어나와 1.4초 뒤 사라진다 (결과 카드 "끝" 배지와 같은 문법) */
+  private drawChanceCallout(w: number, h: number, u: number, now: number): void {
+    const t = now - this.chanceAt
+    if (t < 0 || t > 1400) return
+    const ctx = this.ctx
+    const pop = clamp01(t / 320)
+    const fade = t > 1050 ? 1 - (t - 1050) / 350 : 1
+    ctx.save()
+    ctx.translate(w / 2, h * 0.34 - (1 - fade) * 14 * u)
+    const sc = 0.4 + 0.6 * easeOutBack(pop)
+    ctx.scale(sc, sc)
+    ctx.rotate(-8 * (Math.PI / 180) + Math.sin(now / 90) * 0.02)
+    ctx.globalAlpha = Math.min(1, pop * 2) * clamp01(fade)
+    this.starburst(0, 0, 118 * u, 66 * u, 14)
+    ctx.fillStyle = COL.target
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 3.5 * u
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = `900 ${Math.round(34 * u)}px ${FONT}`
+    ctx.lineWidth = 6 * u
+    ctx.strokeStyle = COL.ink
+    ctx.strokeText('SUPER!', 0, 2 * u)
+    ctx.fillStyle = COL.card
+    ctx.fillText('SUPER!', 0, 2 * u)
+    ctx.textBaseline = 'alphabetic'
+    ctx.restore()
   }
 
   /** 플래시처럼 주변이 뭉개지는 모션 블러 — 지금까지 그린 장면을 옆으로 밀어 겹친다 (플레이어는 이 뒤에 선명하게) */
@@ -1072,7 +1110,7 @@ export class Renderer {
       ctx.translate(cx, cardY + 122 * u)
       const pulse = isBest ? 1 + 0.05 * Math.sin(deadT / 120) : 1
       ctx.scale(easeOutBack(bp) * pulse, easeOutBack(bp) * pulse)
-      const sonicTag = g.sonic.uses > 0 ? `  ·  소닉 ×${g.sonic.uses}` : ''
+      const sonicTag = g.sonic.uses > 0 ? `  ·  슈퍼 ×${g.sonic.uses}` : ''
       this.pill((isBest ? '신기록!' : `최고 ${best}m`) + sonicTag, 0, 0, `800 ${Math.round(14 * u)}px ${FONT}`, COL.target, COL.ink, 12 * u, 0, u, true)
       ctx.restore()
     }
