@@ -9,3 +9,5 @@ dist/
 
 # 배포 스크립트 생성물 (기록은 latest-deployment.json만 커밋)
 tools/deploy-qr.png
+# 아이메시지 수신자 (개인정보 — 공개 저장소라 커밋 금지)
+tools/imessage.local.json

@@ -4,19 +4,26 @@
  *   npm run ait:send            → tools/latest-deployment.json의 URL을 전송
  *   npm run ait:send -- 문구     → 앞에 붙일 문구 지정 (기본: "정글훅 테스트 배포")
  *
- * 수신자는 이 맥의 메시지 앱에 로그인된 iMessage 계정 자신 — 폰의 메시지 앱에 바로 뜬다.
- * 커스텀 스킴(intoss-private://)이라 폰에서 링크를 탭하면 토스가 열린다.
- * 다른 수신자로 보내려면 JGH_IMESSAGE_TO=<전화번호 또는 Apple ID> 환경변수.
+ * 수신자: 환경변수 JGH_IMESSAGE_TO, 없으면 tools/imessage.local.json의 {"to": "..."} (gitignore —
+ * 저장소가 공개라 전화번호를 커밋하지 않는다). 커스텀 스킴(intoss-private://)이라 폰에서 링크를
+ * 탭하면 토스가 열린다.
  */
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const { url, deployedAt } = JSON.parse(readFileSync(join(here, 'latest-deployment.json'), 'utf8'))
 const label = process.argv.slice(2).join(' ') || '정글훅 테스트 배포'
-const to = process.env.JGH_IMESSAGE_TO || 'jsypsy@gmail.com'
+const localCfg = join(here, 'imessage.local.json')
+const to =
+  process.env.JGH_IMESSAGE_TO ||
+  (existsSync(localCfg) ? JSON.parse(readFileSync(localCfg, 'utf8')).to : undefined)
+if (!to) {
+  console.error('수신자가 없다 — JGH_IMESSAGE_TO=<전화번호|Apple ID> 또는 tools/imessage.local.json {"to": "..."}')
+  process.exit(1)
+}
 
 const script = `
 on run argv
