@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif; }
+    a { color: #ff7f3f; } a:hover { color: #e5662a; }
+  </style>
+</helmet>
+<div style="width: 520px; height: 749px; box-sizing: border-box; padding: 28px; background: #f4f9ea; color: #17422b; display: flex; flex-direction: column; gap: 20px;">
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <div style="font-size: 12px; letter-spacing: 0.12em; color: #4f7f62;">정글훅 · 비주얼 토큰</div>
+    <div style="font-size: 22px; font-weight: 900;">밝은 카툰 정글</div>
+    <div style="font-size: 13px; color: #4f7f62; line-height: 1.5;">굵은 외곽선, 평면 색, 둥근 형태. 배경은 연하고 층이 지고, 플레이어와 신호만 진하다.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; letter-spacing: 0.1em; color: #4f7f62;">색</div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: linear-gradient(#bfe8f5, #eaf7d6); border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">하늘 #bfe8f5→#eaf7d6</div></div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: #a9dc8e; border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">먼 숲 #a9dc8e</div></div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: #5fbf6e; border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">중간 숲 #5fbf6e</div></div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: #2f8f4e; border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">가까운 잎 #2f8f4e</div></div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: #ff7f3f; border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">플레이어·버튼 #ff7f3f</div></div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: #ffcc33; border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">타깃·신기록 #ffcc33</div></div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: #a0662f; border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">앵커(가지) #a0662f · 로프 #c98c4b</div></div>
+      <div style="display: flex; flex-direction: column; gap: 6px;"><div style="height: 52px; border-radius: 12px; background: #1f3a2a; border: 2px solid #1f3a2a;"></div><div style="font-size: 11px; color: #4f7f62;">외곽선·글자 #1f3a2a · 보조 #4f7f62</div></div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; letter-spacing: 0.1em; color: #4f7f62;">글자 — system-ui, 굵게 (웹폰트 없음)</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; background: #ffffff; border: 2px solid #1f3a2a; border-radius: 16px; padding: 14px 16px; box-shadow: 4px 4px 0 #1f3a2a;">
+      <div style="font-size: 52px; font-weight: 900; line-height: 1; color: #1f3a2a;">327m</div>
+      <div style="font-size: 26px; font-weight: 900; line-height: 1.2; color: #1f3a2a;">HUD 거리 26 · 결과 52</div>
+      <div style="font-size: 17px; font-weight: 800; color: #b8860b;">배지 17 · 굵게</div>
+      <div style="font-size: 14px; color: #4f7f62;">보조 14 · 힌트 16 · 안내 14 굵게 · 카드는 흰 바탕 + 2px 선 + 4px 오프셋 그림자</div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 12px; letter-spacing: 0.1em; color: #4f7f62;">형태</div>
+    <div style="display: flex; gap: 16px; align-items: center; background: #ffffff; border: 2px solid #1f3a2a; border-radius: 16px; padding: 14px 16px; box-shadow: 4px 4px 0 #1f3a2a;">
+      <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="34" r="21" fill="#ff7f3f" stroke="#1f3a2a" stroke-width="3"/><circle cx="24" cy="26" r="6" fill="#ffd7b3"/><circle cx="26" cy="37" r="2.6" fill="#1f3a2a"/><circle cx="39" cy="37" r="2.6" fill="#1f3a2a"/><path d="M27 44 Q32 48 37 44" stroke="#1f3a2a" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+      <svg width="64" height="64" viewBox="0 0 64 64"><path d="M32 0 C34 10 28 16 32 28" stroke="#2f8f4e" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="32" cy="34" r="7.5" fill="#a0662f" stroke="#1f3a2a" stroke-width="2.5"/><circle cx="32" cy="34" r="15" fill="none" stroke="#ffcc33" stroke-width="4"/><circle cx="32" cy="34" r="15" fill="none" stroke="#1f3a2a" stroke-width="1"/></svg>
+      <svg width="90" height="64" viewBox="0 0 90 64"><line x1="8" y1="8" x2="68" y2="50" stroke="#c98c4b" stroke-width="4" stroke-linecap="round"/><line x1="8" y1="8" x2="68" y2="50" stroke="#1f3a2a" stroke-width="1" stroke-linecap="round" opacity="0.5"/><circle cx="8" cy="8" r="6" fill="#a0662f" stroke="#1f3a2a" stroke-width="2"/><circle cx="72" cy="53" r="10" fill="#ff7f3f" stroke="#1f3a2a" stroke-width="2.5"/></svg>
+      <div style="display: flex; gap: 6px; align-items: center;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #ff7f3f; border: 1.5px solid #1f3a2a; opacity: 0.8;"></span><span style="width: 8px; height: 8px; border-radius: 50%; background: #ff7f3f; border: 1.5px solid #1f3a2a; opacity: 0.55;"></span><span style="width: 7px; height: 7px; border-radius: 50%; background: #ff7f3f; border: 1.5px solid #1f3a2a; opacity: 0.3;"></span></div>
+      <div style="font-size: 11px; color: #4f7f62; line-height: 1.5;">플레이어 = 외곽선 + 하이라이트 + 얼굴<br>앵커 = 덩굴 끝 나뭇가지 매듭, 타깃은 노란 링<br>궤적은 옅어지는 점</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

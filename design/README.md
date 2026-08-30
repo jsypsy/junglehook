@@ -1,0 +1,16 @@
+# 정글훅 비주얼 설계도 — 밝은 카툰 정글
+
+클로드 디자인 캔버스: https://claude.ai/code/artifact/4f7c9ff4-1b60-44cf-adf1-905b2ebc1a8f
+(캔버스에서 수정하면 여기 사본과 어긋난다 — 확정 뒤 다시 내려받아 갱신할 것)
+
+- `Palette.dc.html` — 색·글자·형태 토큰
+- `screens/Play.dc.html` — 플레이 (캔버스의 Main)
+- `screens/Start.dc.html` — 시작 화면 + 데모 카드
+- `screens/GameOver.dc.html` — 결과 카드 ("끝")
+- `screens/Continue.dc.html` — 이어하기 광고 모달
+- `canvas.json` — 캔버스 배치
+
+이 파일들은 **설계도**다. 게임은 Canvas 2D 직접 렌더링이라 `src/render/renderer.ts`에 옮겨 그린다 (D-008).
+토큰: 외곽선·글자 #1f3a2a · 보조 #4f7f62 · 플레이어/버튼 #ff7f3f · 타깃/신기록 #ffcc33 ·
+앵커 #a0662f · 로프 #c98c4b · 하늘 #bfe8f5→#eaf7d6 · 숲 #a9dc8e/#5fbf6e/#2f8f4e/#1f6b3c ·
+카드 = 흰 바탕 + 2px 선 + 4px 오프셋 그림자(작은 칩은 3px) · 반경 20 · 글자 system-ui 굵게(웹폰트 없음)

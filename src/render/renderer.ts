@@ -238,7 +238,7 @@ export class Renderer {
       ctx.globalAlpha = Math.min(1, tp * 2)
       ctx.fillStyle = COL.player
       ctx.font = `900 ${Math.round(44 * s)}px system-ui, sans-serif`
-      ctx.fillText('놓쳤다!', 0, 0) // '추락!'은 결과만 말한다 — 놓친 건 내 타이밍이라는 뜻이 담기게 (D-001 내 탓 원칙)
+      ctx.fillText('끝', 0, 0) // 짧고 담백하게 — '추락!'·'놓쳤다!'를 거쳐 사용자 결정
       ctx.restore()
     }
 
