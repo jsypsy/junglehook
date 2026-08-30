@@ -8,6 +8,7 @@
  *   플레이어가 "지금 누르면 어디에 걸리는지" 항상 볼 수 있어야 죽음이 납득된다
  */
 import { AnchorField } from './anchors'
+import { Rng } from './rng'
 import type { Body } from './physics'
 import { createBody, grab, pump, reelIn, release, stepBody } from './physics'
 import { TUNING } from './tuning'
@@ -15,6 +16,7 @@ import { TUNING } from './tuning'
 export type Phase = 'ready' | 'playing' | 'dead'
 
 export interface Game {
+  seed: number
   phase: Phase
   body: Body
   field: AnchorField
@@ -47,10 +49,58 @@ export interface SonicState {
   uses: number
   /** 장착 후 흐른 시간 (s) — 게이지 마커 위치의 근거 */
   gaugeT: number
+  /** 계절 단계별 찬스 앵커 인덱스 (아직 못 정했으면 없음) */
+  chanceAnchor: Record<number, number>
+  /** 찬스를 쓴(잡았다 놓은) 계절 단계 */
+  usedStage: Record<number, true>
+  /** 지금 찬스 앵커에 매달려 있다 — 이때만 충전된다 */
+  chance: boolean
+  /** 찬스 앵커에 걸린 순간의 멈춤 (남은 초) */
+  freezeT: number
 }
 
 export function createSonic(): SonicState {
-  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0 }
+  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, chanceAnchor: {}, usedStage: {}, chance: false, freezeT: 0 }
+}
+
+/** 계절 단계 번호 (거리 기준, season.stepM) */
+function stageOfX(x: number): number {
+  return Math.floor(Math.max(0, x - TUNING.startPos.x) / (TUNING.season.stepM * TUNING.pxPerMeter))
+}
+
+/**
+ * 이 계절 단계의 찬스 앵커 — 단계마다 하나, 시드+단계로 결정되는 랜덤 위치에 가장 가까운 앵커.
+ * 앵커가 그 위치까지 생성돼 있어야 정해지므로 필요할 때 생성해 둔다
+ */
+export function sonicChanceAnchor(g: Game, stage: number): number {
+  const s = g.sonic
+  const known = s.chanceAnchor[stage]
+  if (known !== undefined) return known
+  const stepPx = TUNING.season.stepM * TUNING.pxPerMeter
+  const start = TUNING.startPos.x + stage * stepPx
+  const r = new Rng((g.seed ^ (stage * 7919 + 13)) >>> 0)
+  const target = start + stepPx * r.range(TUNING.sonic.chanceFrom, TUNING.sonic.chanceTo)
+  g.field.ensure(target + 400)
+  let best = -1
+  let bestD = Infinity
+  g.field.anchors.forEach((a, i) => {
+    const d = Math.abs(a.x - target)
+    if (d < bestD) {
+      bestD = d
+      best = i
+    }
+  })
+  s.chanceAnchor[stage] = best
+  return best
+}
+
+/** 이 앵커 인덱스가 아직 안 쓴 찬스 앵커인가 (렌더러가 금색으로 표시) */
+export function isChanceAnchor(g: Game, idx: number): boolean {
+  const a = g.field.anchors[idx]
+  if (!a) return false
+  const stage = stageOfX(a.x)
+  if (g.sonic.usedStage[stage]) return false
+  return sonicChanceAnchor(g, stage) === idx
 }
 
 /** 게이지 마커 위치 0~1 — 삼각파로 왕복 */
@@ -75,6 +125,7 @@ export function createGame(seed: number): Game {
   const field = new AnchorField(seed)
   field.ensure(TUNING.startPos.x + TUNING.viewW * 2)
   return {
+    seed,
     phase: 'ready',
     body: createBody(TUNING.startPos, TUNING.startVel),
     field,
@@ -156,6 +207,11 @@ export function releaseInput(g: Game): void {
   g.holding = false
   if (g.phase !== 'playing') return
   const s = g.sonic
+  if (g.body.anchor && s.chance) {
+    // 찬스 앵커를 놓는 순간 이 계절의 찬스는 끝 (성공이든 실패든)
+    s.usedStage[stageOfX(g.body.anchor.x)] = true
+    s.chance = false
+  }
   if (g.body.anchor && s.armed) {
     const hit = sonicInSweet(g)
     s.armed = false
@@ -204,6 +260,11 @@ export function update(g: Game, dt: number): void {
     g.distancePx = Math.max(0, g.body.pos.x - TUNING.startPos.x)
     return
   }
+  if (g.sonic.freezeT > 0) {
+    // 소닉 찬스 알림 — 세상이 잠깐 멈춘다 (입력은 그대로 받는다)
+    g.sonic.freezeT = Math.max(0, g.sonic.freezeT - dt)
+    return
+  }
   const hadAnchor = g.body.anchor
   const angBefore = swingAngle(g)
   g.targetIdx = g.body.anchor ? null : selectTarget(g)
@@ -225,7 +286,11 @@ export function update(g: Game, dt: number): void {
     if (!hadAnchor) {
       s.spin = 0
       s.loops = 0
-    } else {
+      // 방금 잡은 앵커가 이 계절의 찬스 앵커면 알림 + 충전 허용
+      const idx = g.field.anchors.findIndex((a) => a.x === g.body.anchor!.x && a.y === g.body.anchor!.y)
+      s.chance = idx >= 0 && isChanceAnchor(g, idx)
+      if (s.chance) s.freezeT = TUNING.sonic.freezeSec
+    } else if (s.chance) {
       let d = swingAngle(g) - angBefore
       if (d > Math.PI) d -= Math.PI * 2
       if (d < -Math.PI) d += Math.PI * 2

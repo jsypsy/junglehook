@@ -6,7 +6,7 @@
  * 문법: 굵은 외곽선(#1f3a2a)·평면 색·둥근 형태·흰 카드 + 오프셋 그림자. 웹폰트 없음.
  */
 import type { Game } from '../core/game'
-import { meters, sonicInSweet, sonicMarker } from '../core/game'
+import { isChanceAnchor, meters, sonicInSweet, sonicMarker } from '../core/game'
 import { seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
@@ -39,6 +39,9 @@ const COL = {
   target: '#ffcc33',
   player: '#ff7f3f',
   playerHi: '#ffd7b3',
+  sonic: '#3fa9f5',
+  sonicHi: '#bfe6ff',
+  sonicFlame: '#7fd0ff',
   card: '#ffffff',
   cardTint: '#eaf7d6',
   scrim: 'rgba(31,58,42,0.35)',
@@ -183,8 +186,17 @@ export class Renderer {
         a.y <= p.y - TUNING.targetMinAbove &&
         Math.hypot(a.x - p.x, a.y - p.y) <= TUNING.reach
       this.drawVine(sx, toY(a.y), s, a.x, pal)
+      const chance = isChanceAnchor(g, list.indexOf(a))
+      if (chance) {
+        // 소닉 찬스 잎 — 금빛 후광이 숨 쉰다
+        const pulse = 0.8 + 0.2 * Math.sin(now / 160)
+        ctx.beginPath()
+        ctx.arc(sx, toY(a.y), 26 * s * pulse, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(255,204,51,0.35)'
+        ctx.fill()
+      }
       ctx.globalAlpha = reachable || a === target ? 1 : 0.5
-      this.drawLoop(sx, toY(a.y), 8 * s, s, pal.vine)
+      this.drawLoop(sx, toY(a.y), (chance ? 10 : 8) * s, s, chance ? COL.target : pal.vine)
       ctx.globalAlpha = 1
     }
     // 타깃 링 — "지금 누르면 여기에 걸린다"
@@ -235,10 +247,11 @@ export class Renderer {
       this.drawDashFx(px, py, s, w, h, now)
     }
     if (!dead && g.body.anchor && (so.loops > 0 || so.armed)) this.drawChargeRings(px, py, s, so.loops, so.armed, now)
+    if (!dead && so.freezeT > 0 && g.body.anchor) this.drawChanceBurst(toX(g.body.anchor.x), toY(g.body.anchor.y), s, w, h, so.freezeT)
 
-    // 플레이어 — 죽으면 파편으로 흩어진다
+    // 플레이어 — 죽으면 파편으로 흩어진다. 대시 중엔 파란 슈퍼 모드(1.5배·선글라스)
     if (!dead) {
-      this.drawPlayer(px, py, 15 * s, s, g.body.vel.x, g.holding || so.dashing)
+      this.drawPlayer(px, py, (so.dashing ? 22 : 15) * s, s, g.body.vel.x, g.holding || so.dashing, so.dashing)
     } else {
       this.drawDeathWorld(dead, now, toX, toY, s)
     }
@@ -738,21 +751,45 @@ export class Renderer {
 
   // ── 플레이어·연출 ─────────────────────────────────────────────────
 
-  private drawPlayer(x: number, y: number, r: number, s: number, velX: number, holding: boolean): void {
+  private drawPlayer(x: number, y: number, r: number, s: number, velX: number, holding: boolean, sonic = false): void {
     const ctx = this.ctx
-    this.outlinedCircle(x, y, r, COL.player, 3 * s)
+    this.outlinedCircle(x, y, r, sonic ? COL.sonic : COL.player, 3 * s)
     ctx.beginPath()
     ctx.arc(x - r * 0.4, y - r * 0.4, r * 0.3, 0, Math.PI * 2)
-    ctx.fillStyle = COL.playerHi
+    ctx.fillStyle = sonic ? COL.sonicHi : COL.playerHi
     ctx.fill()
-    // 눈은 진행 방향으로 살짝 쏠린다. 홀드 중엔 힘주는 표정(눈 가늘게)
     const look = Math.max(-1, Math.min(1, velX / 600)) * r * 0.12
-    ctx.fillStyle = COL.ink
-    for (const dx of [-0.28, 0.32]) {
+    if (sonic) {
+      // 선글라스 — 렌즈 둘 + 브릿지, 살짝 기울여 속도감
+      ctx.save()
+      ctx.translate(x + look, y + r * 0.1)
+      ctx.rotate(-0.08)
+      ctx.fillStyle = COL.ink
       ctx.beginPath()
-      if (holding) ctx.ellipse(x + dx * r + look, y + r * 0.12, r * 0.13, r * 0.08, 0, 0, Math.PI * 2)
-      else ctx.arc(x + dx * r + look, y + r * 0.12, r * 0.13, 0, Math.PI * 2)
+      this.roundRect(-r * 0.62, -r * 0.17, r * 0.5, r * 0.34, r * 0.1)
       ctx.fill()
+      ctx.beginPath()
+      this.roundRect(r * 0.08, -r * 0.17, r * 0.5, r * 0.34, r * 0.1)
+      ctx.fill()
+      ctx.fillRect(-r * 0.14, -r * 0.05, r * 0.24, r * 0.08)
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = Math.max(1, r * 0.08)
+      ctx.beginPath()
+      ctx.moveTo(-r * 0.62, -r * 0.05)
+      ctx.lineTo(-r * 0.95, -r * 0.15)
+      ctx.moveTo(r * 0.58, -r * 0.05)
+      ctx.lineTo(r * 0.9, -r * 0.15)
+      ctx.stroke()
+      ctx.restore()
+    } else {
+      // 눈은 진행 방향으로 살짝 쏠린다. 홀드 중엔 힘주는 표정(눈 가늘게)
+      ctx.fillStyle = COL.ink
+      for (const dx of [-0.28, 0.32]) {
+        ctx.beginPath()
+        if (holding) ctx.ellipse(x + dx * r + look, y + r * 0.12, r * 0.13, r * 0.08, 0, 0, Math.PI * 2)
+        else ctx.arc(x + dx * r + look, y + r * 0.12, r * 0.13, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
     ctx.beginPath()
     ctx.moveTo(x - r * 0.2 + look, y + r * 0.45)
@@ -806,12 +843,12 @@ export class Renderer {
       ctx.lineTo(w - off + len, ly)
       ctx.stroke()
     }
-    // 잔상
+    // 잔상 (파란 슈퍼 모드)
     for (let i = 1; i <= 5; i++) {
-      ctx.globalAlpha = 0.28 - i * 0.045
+      ctx.globalAlpha = 0.3 - i * 0.05
       ctx.beginPath()
-      ctx.arc(x - i * 22 * s, y, (15 - i * 1.5) * s, 0, Math.PI * 2)
-      ctx.fillStyle = COL.player
+      ctx.arc(x - i * 26 * s, y, (22 - i * 2.5) * s, 0, Math.PI * 2)
+      ctx.fillStyle = COL.sonic
       ctx.fill()
     }
     ctx.globalAlpha = 1
@@ -830,8 +867,82 @@ export class Renderer {
       ctx.lineJoin = 'round'
       ctx.stroke()
     }
-    flame(52 * s, 12 * s, COL.player)
-    flame(30 * s, 6 * s, COL.target)
+    flame(70 * s, 16 * s, COL.sonic)
+    flame(42 * s, 8 * s, COL.sonicFlame)
+    this.drawLightning(x, y, 22 * s, s, now)
+  }
+
+  /** 토르식 전기 — 플레이어 주위 번개 아크(흰 심 + 파란 광채)가 프레임마다 다르게 번쩍인다 */
+  private drawLightning(x: number, y: number, r: number, s: number, now: number): void {
+    const ctx = this.ctx
+    const frame = Math.floor(now / 45) // 45ms마다 새 패턴
+    const rnd = (i: number) => {
+      const v = Math.sin(frame * 12.9898 + i * 78.233) * 43758.5453
+      return v - Math.floor(v)
+    }
+    // 전기 오라
+    ctx.beginPath()
+    ctx.arc(x, y, r * 1.7, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(127,208,255,0.22)'
+    ctx.fill()
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    for (let b = 0; b < 7; b++) {
+      const a0 = rnd(b * 10) * Math.PI * 2
+      let px = x + Math.cos(a0) * r * 1.1
+      let py = y + Math.sin(a0) * r * 1.1
+      const segs = 3 + Math.floor(rnd(b * 10 + 1) * 3)
+      const len = r * (0.9 + rnd(b * 10 + 2) * 1.2)
+      const dir = a0 + (rnd(b * 10 + 3) - 0.5) * 1.2 - 0.6 // 대체로 뒤·바깥으로
+      const pts: Array<[number, number]> = [[px, py]]
+      for (let k = 1; k <= segs; k++) {
+        const jitter = (rnd(b * 10 + 3 + k) - 0.5) * r * 0.9
+        px += Math.cos(dir) * (len / segs) + Math.cos(dir + Math.PI / 2) * jitter
+        py += Math.sin(dir) * (len / segs) + Math.sin(dir + Math.PI / 2) * jitter
+        pts.push([px, py])
+      }
+      const path = () => {
+        ctx.beginPath()
+        ctx.moveTo(pts[0]![0], pts[0]![1])
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k]![0], pts[k]![1])
+      }
+      path()
+      ctx.strokeStyle = 'rgba(63,169,245,0.85)'
+      ctx.lineWidth = 5 * s
+      ctx.stroke()
+      path()
+      ctx.strokeStyle = '#ffffff'
+      ctx.lineWidth = 1.8 * s
+      ctx.stroke()
+    }
+  }
+
+  /** 소닉 찬스 알림 — 로프가 걸린 앵커에서 파열 링·방사선 + 화면 플래시 (멈춤 동안) */
+  private drawChanceBurst(x: number, y: number, s: number, w: number, h: number, freezeLeft: number): void {
+    const ctx = this.ctx
+    const p = 1 - freezeLeft / TUNING.sonic.freezeSec // 0→1
+    ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - p)})`
+    ctx.fillRect(-20, -20, w + 40, h + 40)
+    ctx.strokeStyle = COL.target
+    ctx.lineWidth = 6 * s * (1 - p * 0.7)
+    ctx.beginPath()
+    ctx.arc(x, y, (20 + 180 * p) * s, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 1.5 * s
+    ctx.stroke()
+    ctx.strokeStyle = COL.target
+    ctx.lineCap = 'round'
+    ctx.lineWidth = 3 * s
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + p * 0.6
+      const r0 = (40 + 120 * p) * s
+      const r1 = r0 + (24 + 20 * (i % 2)) * s
+      ctx.beginPath()
+      ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0)
+      ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1)
+      ctx.stroke()
+    }
   }
 
   private startDeath(g: Game, now: number): DeathFx {

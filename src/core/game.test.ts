@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, sonicInSweet, sonicMarker, update } from './game'
+import { continueRun, continuesLeft, createGame, isChanceAnchor, meters, press, releaseInput, selectTarget, sonicChanceAnchor, sonicInSweet, sonicMarker, update } from './game'
 import { TUNING } from './tuning'
 
 const STEP = 1 / 120
@@ -109,52 +109,78 @@ describe('game', () => {
     expect(continueRun(g)).toBe(false)
   })
 
-  it('소닉 파워: 한 앵커에서 3바퀴 돌면 장착, 놓으면 직선 대시 후 일반 비행', () => {
+  it('소닉 파워: 찬스 앵커에서만 충전 — 3바퀴 장착 → 게이지 → 직선 대시 후 일반 비행', () => {
     const g = createGame(3)
     press(g)
+    // 일반 앵커에서는 아무리 돌아도 충전되지 않는다
     for (let i = 0; i < 10; i++) update(g, 1 / 120)
-    press(g) // 잡기
-    // 강체 로프 + 펌프로 회전할 때까지 홀드
+    press(g)
+    for (let i = 0; i < 120 * 12; i++) update(g, 1 / 120)
+    expect(g.sonic.chance).toBe(false)
+    expect(g.sonic.loops).toBe(0)
+    releaseInput(g)
+    // 찬스 앵커는 계절 단계마다 하나, 시드로 결정
+    const idx = sonicChanceAnchor(g, 0)
+    expect(isChanceAnchor(g, idx)).toBe(true)
+    expect(sonicChanceAnchor(g, 0)).toBe(idx)
+    const a = g.field.anchors[idx]!
+    // 찬스 앵커 바로 아래로 옮겨 잡는다 → 멈춤(알림) 후 충전 시작
+    g.body.pos = { x: a.x - 100, y: a.y + 150 } // 선호점(+130, −150)이 이 앵커에 떨어지게
+    g.body.vel = { x: 200, y: -50 }
+    press(g)
+    update(g, 1 / 120)
+    expect(g.body.anchor).toEqual({ x: a.x, y: a.y })
+    expect(g.sonic.chance).toBe(true)
+    expect(g.sonic.freezeT).toBeGreaterThan(0)
+    const frozenX = g.body.pos.x
+    for (let i = 0; i < 120 * 0.3; i++) update(g, 1 / 120)
+    expect(g.body.pos.x).toBe(frozenX) // 멈춤 동안 물리 정지
     let n = 0
     while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, 1 / 120)
     expect(g.sonic.armed).toBe(true)
-    expect(g.sonic.loops).toBeGreaterThanOrEqual(TUNING.sonic.loopsToArm)
     // 게이지: 마커가 왕복한다
     g.sonic.gaugeT = 0
     expect(sonicMarker(g)).toBe(0)
-    g.sonic.gaugeT = 0.5 / TUNING.sonic.gaugeHz // 반주기 → 끝(1)
+    g.sonic.gaugeT = 0.5 / TUNING.sonic.gaugeHz
     expect(sonicMarker(g)).toBeCloseTo(1)
-    // 구간 밖에서 놓으면 발동 없이 충전 소멸
-    g.sonic.gaugeT = 0
-    expect(sonicInSweet(g)).toBe(false)
-    releaseInput(g)
-    expect(g.sonic.dashing).toBe(false)
-    expect(g.sonic.armed).toBe(false)
-    expect(g.body.anchor).toBeNull()
-    // 다시 잡고 충전 → 구간 안에서 놓으면 대시
-    for (let i = 0; i < 6; i++) update(g, 1 / 120)
-    press(g)
-    n = 0
-    while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, 1 / 120)
-    expect(g.sonic.armed).toBe(true)
-    g.sonic.gaugeT = 0.25 / TUNING.sonic.gaugeHz // 1/4주기 → 마커 0.5 (한가운데)
+    g.sonic.gaugeT = 0.25 / TUNING.sonic.gaugeHz // 한가운데
     expect(sonicInSweet(g)).toBe(true)
     const x0 = g.body.pos.x
     releaseInput(g)
     expect(g.sonic.dashing).toBe(true)
     expect(g.body.anchor).toBeNull()
-    // 대시 중엔 중력 무시 — 순항 고도로 수렴, 잡기 없음
+    expect(isChanceAnchor(g, idx)).toBe(false) // 이 계절의 찬스는 소모
     press(g)
     for (let i = 0; i < 120 * 2; i++) update(g, 1 / 120)
     expect(g.sonic.dashing).toBe(true)
     expect(g.body.anchor).toBeNull()
     expect(Math.abs(g.body.pos.y - TUNING.sonic.cruiseY)).toBeLessThan(5)
     releaseInput(g)
-    // 거리를 다 쓰면 일반 비행으로
     while (g.sonic.dashing && g.phase === 'playing') update(g, 1 / 120)
     expect(g.sonic.dashing).toBe(false)
     expect(g.sonic.uses).toBe(1)
     expect(g.body.pos.x - x0).toBeGreaterThanOrEqual(TUNING.sonic.dashMeters * TUNING.pxPerMeter - 1)
     expect(g.body.vel.y).toBeLessThan(0)
+  })
+
+  it('소닉 찬스: 게이지 밖에서 놓으면 발동 없이 그 계절 찬스가 소모된다', () => {
+    const g = createGame(5)
+    press(g)
+    const idx = sonicChanceAnchor(g, 0)
+    const a = g.field.anchors[idx]!
+    g.body.pos = { x: a.x - 100, y: a.y + 150 }
+    g.body.vel = { x: 200, y: -50 }
+    press(g)
+    update(g, 1 / 120)
+    expect(g.body.anchor).toEqual({ x: a.x, y: a.y })
+    expect(g.sonic.chance).toBe(true)
+    let n = 0
+    while (!g.sonic.armed && n++ < 120 * 30 && g.phase === 'playing') update(g, 1 / 120)
+    g.sonic.gaugeT = 0
+    expect(sonicInSweet(g)).toBe(false)
+    releaseInput(g)
+    expect(g.sonic.dashing).toBe(false)
+    expect(g.sonic.chance).toBe(false)
+    expect(isChanceAnchor(g, idx)).toBe(false)
   })
 })

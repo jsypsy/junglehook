@@ -56,6 +56,11 @@ export const TUNING = {
     /** 타이밍 게이지: 마커가 왕복하는 주기(Hz)와 성공 구간 반폭(0~0.5). 구간 밖에서 놓으면 충전 소멸 */
     gaugeHz: 0.7,
     sweetHalf: 0.08,
+    /** 찬스 앵커: 계절(season.stepM)마다 하나, 계절 구간의 [chanceFrom, chanceTo] 비율 안에서 랜덤 */
+    chanceFrom: 0.2,
+    chanceTo: 0.8,
+    /** 찬스 앵커에 로프가 걸린 순간 멈추는 시간 (s) — "소닉 찬스" 알림 */
+    freezeSec: 0.45,
   },
   /** 거리 → 미터 환산 (px per m) */
   pxPerMeter: 50,
