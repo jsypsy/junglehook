@@ -39,9 +39,11 @@ const COL = {
   target: '#ffcc33',
   player: '#ff7f3f',
   playerHi: '#ffd7b3',
-  sonic: '#3fa9f5',
-  sonicHi: '#bfe6ff',
-  sonicFlame: '#7fd0ff',
+  // 슈퍼 모드 — 백열 몸 + 노랑→주황→빨강 불꽃·번개 (시스템 색 노랑에서 이어지는 "충전이 터진" 색)
+  sonic: '#fff1b0',
+  sonicHi: '#ffffff',
+  sonicFlame: '#ffcc33',
+  sonicHot: '#e6392b',
   card: '#ffffff',
   cardTint: '#eaf7d6',
   scrim: 'rgba(31,58,42,0.35)',
@@ -848,7 +850,7 @@ export class Renderer {
       ctx.globalAlpha = 0.3 - i * 0.05
       ctx.beginPath()
       ctx.arc(x - i * 26 * s, y, (22 - i * 2.5) * s, 0, Math.PI * 2)
-      ctx.fillStyle = COL.sonic
+      ctx.fillStyle = COL.sonicHot
       ctx.fill()
     }
     ctx.globalAlpha = 1
@@ -867,8 +869,9 @@ export class Renderer {
       ctx.lineJoin = 'round'
       ctx.stroke()
     }
-    flame(70 * s, 16 * s, COL.sonic)
-    flame(42 * s, 8 * s, COL.sonicFlame)
+    flame(76 * s, 18 * s, COL.sonicHot)
+    flame(54 * s, 12 * s, COL.player)
+    flame(32 * s, 6 * s, COL.sonicFlame)
     this.drawLightning(x, y, 22 * s, s, now)
   }
 
@@ -883,7 +886,7 @@ export class Renderer {
     // 전기 오라
     ctx.beginPath()
     ctx.arc(x, y, r * 1.7, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(127,208,255,0.22)'
+    ctx.fillStyle = 'rgba(255,204,51,0.28)'
     ctx.fill()
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
@@ -907,8 +910,12 @@ export class Renderer {
         for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k]![0], pts[k]![1])
       }
       path()
-      ctx.strokeStyle = 'rgba(63,169,245,0.85)'
-      ctx.lineWidth = 5 * s
+      ctx.strokeStyle = 'rgba(230,57,43,0.8)'
+      ctx.lineWidth = 6 * s
+      ctx.stroke()
+      path()
+      ctx.strokeStyle = 'rgba(255,127,63,0.9)'
+      ctx.lineWidth = 3.5 * s
       ctx.stroke()
       path()
       ctx.strokeStyle = '#ffffff'
