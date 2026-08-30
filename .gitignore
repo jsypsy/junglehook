@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+.env
+*.local
+
+# 앱인토스 배포 아티팩트
+*.ait
+
+# 배포 스크립트 생성물 (기록은 latest-deployment.json만 커밋)
+tools/deploy-qr.png

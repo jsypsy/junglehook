@@ -1,0 +1,24 @@
+{
+  "name": "junglehook",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ait:build": "npm run build && ait build",
+    "ait:deploy": "node tools/deploy.mjs"
+  },
+  "devDependencies": {
+    "qrcode": "^1.5.4",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@apps-in-toss/web-framework": "^3.0.2"
+  }
+}

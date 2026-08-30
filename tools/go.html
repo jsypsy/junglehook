@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>도트게임 열기</title>
+    <!--
+      폰 사파리 북마크용 관문 페이지 (개발 전용).
+
+      파라미터 없는 `intoss-private://<appName>` 은 미출시 상태에서
+      "지금은 서비스를 사용할 수 없어요"로 거부된다 (한줄팡 때 실기기 확인).
+      그래서 버튼 주소는 `npm run ait:deploy`가 latest-deployment.json에 기록한
+      **deploymentId가 붙은 전체 URL**을 쓴다.
+      이 페이지를 북마크해두면: 북마크 탭 → 버튼 탭 → 토스에서 최신 배포.
+    -->
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        background: #000;
+        color: #fff;
+        font: 17px/1.6 -apple-system, system-ui, sans-serif;
+        padding: 24px;
+        text-align: center;
+      }
+      a.big {
+        display: block;
+        background: #3fbfff;
+        color: #000;
+        text-decoration: none;
+        font-size: 22px;
+        font-weight: 800;
+        padding: 22px 44px;
+        border: 4px solid #fff;
+        box-shadow: 6px 6px 0 #0073ef;
+      }
+      .memo {
+        color: #757575;
+        font-size: 13px;
+        max-width: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="font-size: 44px">👾</div>
+    <a class="big" id="open" href="#">도트게임 열기</a>
+    <div class="memo" id="memo">배포 기록을 읽는 중…</div>
+    <script type="module">
+      try {
+        const res = await fetch('./latest-deployment.json')
+        const { url, deployedAt } = await res.json()
+        document.getElementById('open').href = url
+        document.getElementById('memo').textContent = `마지막 배포: ${deployedAt}`
+      } catch {
+        document.getElementById('memo').textContent =
+          '배포 기록이 없습니다 — npm run ait:deploy를 먼저 실행하세요'
+      }
+    </script>
+  </body>
+</html>
