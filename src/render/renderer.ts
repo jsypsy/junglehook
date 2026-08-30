@@ -7,7 +7,7 @@
  */
 import type { Game } from '../core/game'
 import { isChanceAnchor, meters, sonicInSweet, sonicMarker, threatGap } from '../core/game'
-import { seasonAt, type Season, type SeasonState } from '../core/season'
+import { dayLabel, daysOf, seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
 import { mixHex } from './color'
@@ -1342,10 +1342,11 @@ export class Renderer {
     ctx.fillText('이번 기록', cx, cardY + 32 * u)
     const m = meters(g)
     const countP = clamp01((deadT - 550) / 650)
-    const shown = Math.round(m * (1 - Math.pow(1 - countP, 3)))
+    // 표시는 일수(D-014) — 카운트업도 일수로
+    const shown = Math.round(daysOf(m) * (1 - Math.pow(1 - countP, 3)))
     ctx.fillStyle = COL.ink
     ctx.font = `900 ${Math.round(56 * u)}px ${FONT}`
-    ctx.fillText(`${shown}m`, cx, cardY + 88 * u)
+    ctx.fillText(dayLabel(shown), cx, cardY + 88 * u)
     const isBest = m > best
     const bp = clamp01((deadT - 1250) / 300)
     if (bp > 0) {
@@ -1354,7 +1355,7 @@ export class Renderer {
       const pulse = isBest ? 1 + 0.05 * Math.sin(deadT / 120) : 1
       ctx.scale(easeOutBack(bp) * pulse, easeOutBack(bp) * pulse)
       const sonicTag = g.sonic.uses > 0 ? `  ·  슈퍼 ×${g.sonic.uses}` : ''
-      this.pill((isBest ? '신기록!' : `최고 ${best}m`) + sonicTag, 0, 0, `800 ${Math.round(14 * u)}px ${FONT}`, COL.target, COL.ink, 12 * u, 0, u, true)
+      this.pill((isBest ? '신기록!' : `최고 ${dayLabel(daysOf(best))}`) + sonicTag, 0, 0, `800 ${Math.round(14 * u)}px ${FONT}`, COL.target, COL.ink, 12 * u, 0, u, true)
       ctx.restore()
     }
     ctx.restore()
@@ -1420,7 +1421,7 @@ export class Renderer {
     ctx.textBaseline = 'alphabetic'
     // 거리 칩 (왼쪽 위)
     ctx.font = `900 ${Math.round(26 * u)}px ${FONT}`
-    const dist = `${meters(g)}m`
+    const dist = dayLabel(daysOf(meters(g)))
     const dw = ctx.measureText(dist).width + 30 * u
     const dh = 44 * u
     this.chip(14 * u, top, dw, dh, COL.card, 3 * u)
@@ -1429,7 +1430,7 @@ export class Renderer {
     ctx.fillText(dist, 14 * u + 15 * u, top + dh / 2 + 9 * u)
     // 최고 기록 칩 (오른쪽 위) — 별 + 숫자
     ctx.font = `800 ${Math.round(14 * u)}px ${FONT}`
-    const bestText = `${best}m`
+    const bestText = dayLabel(daysOf(best))
     const bw = ctx.measureText(bestText).width + 44 * u
     const bh = 32 * u
     const bx = w - 14 * u - bw

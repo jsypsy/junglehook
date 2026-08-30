@@ -157,3 +157,8 @@
 - 렌더: `drawThreat`(월드, 플레이어 아래 층) + `drawThreatWarning`(화면, 전경 위). 크롬 검수: gap 240(경고만) ·
   110(벽 진입) · 60(눈·촉수) · 잡힘 → 카드. 탭이 hidden이면 `__jgh.stepOnce`로 구동 (HANDOFF 참고)
 - 계측 `game_over.cause` 추가. 프리셋 `nothreat`·`chase2`. BUILD 19
+
+## 2026-08-30 — BUILD 20 일수 표기 (D-014)
+
+- `daysOf(m) = floor(m·365/1000)`, 렌더러 4곳(HUD·카드·카운트업·최고 칩) 교체. 테스트 48개. 크롬 검수: 700m 지점
+  "255일 / 최고 406일(=1115m)", 잡힘 카드까지 확인

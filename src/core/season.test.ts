@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { seasonAt } from './season'
+import { dayLabel, daysOf, seasonAt } from './season'
 import { TUNING } from './tuning'
 
 describe('season', () => {
@@ -31,5 +31,15 @@ describe('season', () => {
     expect(seasonAt(3 * S).progress).toBe(0)
     expect(seasonAt(3.5 * S).progress).toBeCloseTo(0.5)
     expect(seasonAt(-5).season).toBe('spring')
+  })
+
+  it('일수: 사계절 1000m = 365일, 계절 하나 250m = 91일', () => {
+    expect(daysOf(0)).toBe(0)
+    expect(daysOf(2)).toBe(0)
+    expect(daysOf(3)).toBe(1)
+    expect(daysOf(250)).toBe(91)
+    expect(daysOf(1000)).toBe(365)
+    expect(daysOf(-5)).toBe(0)
+    expect(dayLabel(91)).toBe('91일')
   })
 })

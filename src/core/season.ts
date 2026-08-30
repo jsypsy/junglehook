@@ -31,3 +31,16 @@ export function seasonAt(metersNow: number): SeasonState {
   const blend = stage === 0 ? 1 : Math.min(1, into / blendM)
   return { season, prev, blend, progress: into / stepM, stage }
 }
+
+/**
+ * 거리 → 일수 (사용자 결정 2026-08-30, D-014): 사계절 한 바퀴(stepM×4 = 1000m)가 1년 365일.
+ * 250m 계절 하나 = 91일, 1일 ≈ 2.74m. 표시 전용 — 저장(best)·계측(score)은 미터 그대로
+ */
+export function daysOf(metersNow: number): number {
+  return Math.floor((Math.max(0, metersNow) * 365) / (TUNING.season.stepM * 4))
+}
+
+/** 일수 표기 — "N일" */
+export function dayLabel(days: number): string {
+  return `${days}일`
+}
