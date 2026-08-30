@@ -240,7 +240,7 @@ export class Renderer {
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
   }
 
-  /** 계절 입자 — 겨울 눈(갈수록 거세짐). 상태 없는 결정론 패턴(시간·인덱스). 봄 꽃잎은 지저분해 제거 */
+  /** 계절 입자 — 겨울 눈(갈수록 거세짐), 가을 낙엽. 상태 없는 결정론 패턴(시간·인덱스). 봄 꽃잎은 지저분해 제거 */
   private drawSnow(st: SeasonState, w: number, h: number, u: number, now: number): void {
     const weightOf = (season: Season) =>
       Math.max(st.season === season ? st.blend : 0, st.prev === season && st.blend < 1 ? 1 - st.blend : 0)
@@ -255,12 +255,46 @@ export class Renderer {
         const speed = (40 + 50 * intensity) * (0.7 + ((i * 37) % 10) / 20)
         const x = (((i * 97.3) % w) + Math.sin(t * 0.8 + i) * 14 * u + w) % w
         const y = (((i * 53.7) % h) + t * speed * u) % h
-        const r = (2 + ((i * 13) % 3)) * u
-        this.outlinedCircle(x, y, r, '#ffffff', 1 * u)
+        const r = (3.5 + ((i * 13) % 3) * 1.4) * u
+        this.outlinedCircle(x, y, r, '#ffffff', 1.2 * u)
       }
       ctx.globalAlpha = 1
     }
-
+    // 가을 낙엽 — 큼직한 잎이 흔들리며 떨어진다 (사용자: 낙엽 티가 나게)
+    const fall = weightOf('autumn')
+    if (fall > 0) {
+      const colors = ['#d47f3a', '#e0a63a', '#a34d2a', '#c8632f']
+      ctx.globalAlpha = fall * 0.95
+      for (let i = 0; i < 12; i++) {
+        const sway = Math.sin(t * 1.1 + i * 1.3) * 34 * u
+        const x = (((i * 137.9) % w) + sway + t * 18 * u + w * 4) % w
+        const y = (((i * 83.1) % h) + t * (42 + ((i * 11) % 5) * 6) * u) % h
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(Math.sin(t * 1.6 + i) * 0.9 + i)
+        const L = (13 + ((i * 7) % 3) * 2) * u
+        const W = L * 0.55
+        ctx.beginPath()
+        ctx.moveTo(0, -L)
+        ctx.quadraticCurveTo(W, -L * 0.3, 0, L * 0.6)
+        ctx.quadraticCurveTo(-W, -L * 0.3, 0, -L)
+        ctx.closePath()
+        ctx.fillStyle = colors[i % colors.length]!
+        ctx.fill()
+        ctx.strokeStyle = COL.ink
+        ctx.lineWidth = 1.6 * u
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(0, -L * 0.75)
+        ctx.lineTo(0, L * 0.4)
+        ctx.strokeStyle = 'rgba(31,58,42,0.5)'
+        ctx.lineWidth = 1.2 * u
+        ctx.stroke()
+        ctx.restore()
+      }
+      ctx.globalAlpha = 1
+    }
   }
 
   /** 하늘·태양·구름·3겹 숲 — 화면 공간, 카메라 x로 패럴랙스 */
@@ -275,8 +309,11 @@ export class Renderer {
     // 태양 — 계절 캐릭터: 봄 미소 / 여름 크고 이글거리며 화난 얼굴 / 가을 나른한 반눈 / 겨울 창백하게 눈 감음
     const sunX = w - 75 * u
     const sunY = topInset + 96 * u
-    const summer = Math.max(st.season === 'summer' ? st.blend : 0, st.prev === 'summer' && st.blend < 1 ? 1 - st.blend : 0)
-    const R = (40 + 8 * summer) * u
+    const weightOf = (season: Season) =>
+      Math.max(st.season === season ? st.blend : 0, st.prev === season && st.blend < 1 ? 1 - st.blend : 0)
+    const summer = weightOf('summer')
+    const winter = weightOf('winter')
+    const R = (40 + 16 * summer - 12 * winter) * u
     if (summer > 0) {
       // 광선 — 천천히 돌며 이글거린다
       ctx.save()
