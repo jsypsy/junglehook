@@ -9,7 +9,7 @@
  */
 import { AnchorField } from './anchors'
 import type { Body } from './physics'
-import { createBody, grab, release, stepBody } from './physics'
+import { createBody, grab, pump, reelIn, release, stepBody } from './physics'
 import { TUNING } from './tuning'
 
 export type Phase = 'ready' | 'playing' | 'dead'
@@ -22,6 +22,7 @@ export interface Game {
   /** 지금 홀드하면 잡힐 앵커 인덱스 — 없으면 null */
   targetIdx: number | null
   /** 도달 최대 x (px) — 점수의 원천 */
+  /** 현재 위치 기준 전진 거리 (px) — 뒤로 가면 줄어든다. 점수는 죽은 지점 기준 (과회전의 비용) */
   distancePx: number
   /** 이번 런 경과 시간 (초) — 세션 길이 계측용 */
   timeSec: number
@@ -97,13 +98,14 @@ export function update(g: Game, dt: number): void {
   if (g.holding && !g.body.anchor && target) {
     grab(g.body, target, TUNING.reach)
   }
-  // 홀드 중 로프 감기 — 각운동량 보존으로 속도가 붙어 고도를 회복한다.
+  // 홀드 중 로프 감기 — 윈치가 몸을 앵커 쪽으로 당긴다 (외부에서 일을 넣는 연산이라 투영과 분리, D-006).
   // 이게 없으면 매 사이클 가라앉기만 하다 앵커선이 reach 밖으로 벗어난다 (계측으로 확인)
   if (g.body.anchor) {
-    g.body.ropeLen = Math.max(TUNING.minRope, g.body.ropeLen - TUNING.reelSpeed * dt)
+    reelIn(g.body, TUNING.reelSpeed * dt, TUNING.minRope, TUNING.reelGain)
+    pump(g.body, TUNING.swingPump * dt, TUNING.swingMaxSpeed)
   }
-  stepBody(g.body, TUNING.gravity, dt, TUNING.airDrag)
-  if (g.body.pos.x > g.distancePx) g.distancePx = g.body.pos.x
+  stepBody(g.body, TUNING.gravity, dt, g.body.anchor ? TUNING.ropeDrag : TUNING.airDrag, TUNING.rigidRope)
+  g.distancePx = Math.max(0, g.body.pos.x - TUNING.startPos.x)
   if (g.body.pos.y > TUNING.killY) {
     g.phase = 'dead'
     g.holding = false

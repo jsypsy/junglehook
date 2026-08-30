@@ -67,4 +67,18 @@ describe('game', () => {
     expect(g.phase).toBe('playing')
     expect(meters(g)).toBeGreaterThan(30)
   })
+
+  it('거리는 현재 위치 기준 — 뒤로 가면 줄어든다', () => {
+    const g = createGame(1)
+    press(g)
+    g.body.pos.x = TUNING.startPos.x + 500
+    update(g, 1 / 120)
+    expect(meters(g)).toBe(10)
+    g.body.pos.x = TUNING.startPos.x + 250
+    update(g, 1 / 120)
+    expect(meters(g)).toBe(5)
+    g.body.pos.x = 0
+    update(g, 1 / 120)
+    expect(meters(g)).toBe(0)
+  })
 })

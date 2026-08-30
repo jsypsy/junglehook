@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createBody, grab, release, stepBody } from './physics'
+import { createBody, grab, pump, reelIn, release, stepBody } from './physics'
 
 const G = 2000
 const STEP = 1 / 120
@@ -31,6 +31,42 @@ describe('physics', () => {
     const e0 = energy()
     for (let i = 0; i < 600; i++) stepBody(b, G, STEP)
     expect(energy()).toBeLessThanOrEqual(e0 + Math.abs(e0) * 0.05 + 1000)
+  })
+
+  it('진자가 감쇠하지 않는다 — 30초 뒤에도 진폭 유지 (수직 정지 상태 방지, D-006)', () => {
+    const len = 90
+    const a0 = (60 * Math.PI) / 180
+    const b = createBody({ x: len * Math.sin(a0), y: len * Math.cos(a0) }, { x: 0, y: 0 })
+    grab(b, { x: 0, y: 0 }, 1000)
+    let lateAmp = 0
+    for (let i = 0; i < 120 * 30; i++) {
+      stepBody(b, G, STEP)
+      if (i > 120 * 27) lateAmp = Math.max(lateAmp, Math.abs(Math.atan2(b.pos.x, b.pos.y)))
+    }
+    expect((lateAmp * 180) / Math.PI).toBeGreaterThan(55)
+  })
+
+  it('감기: 로프가 줄고 몸이 앵커 쪽으로 당겨진다 (gain 0이면 속력 유지)', () => {
+    const b = createBody({ x: 0, y: 200 }, { x: 300, y: 0 })
+    grab(b, { x: 0, y: 0 }, 270)
+    reelIn(b, 50, 90, 0)
+    expect(b.ropeLen).toBe(150)
+    expect(b.pos.y).toBeCloseTo(150)
+    expect(Math.hypot(b.vel.x, b.vel.y)).toBeCloseTo(300)
+    reelIn(b, 1000, 90, 1)
+    expect(b.ropeLen).toBe(90)
+    expect(Math.hypot(b.vel.x, b.vel.y)).toBeCloseTo(300 * (150 / 90))
+  })
+
+  it('펌프: 진행 방향으로 속력이 붙되 상한을 넘지 않는다', () => {
+    const b = createBody({ x: 0, y: 0 }, { x: 300, y: 400 })
+    pump(b, 100, 1100)
+    expect(Math.hypot(b.vel.x, b.vel.y)).toBeCloseTo(600)
+    expect(b.vel.x / b.vel.y).toBeCloseTo(300 / 400)
+    pump(b, 10000, 1100)
+    expect(Math.hypot(b.vel.x, b.vel.y)).toBeCloseTo(1100)
+    pump(b, 100, 1100)
+    expect(Math.hypot(b.vel.x, b.vel.y)).toBeCloseTo(1100)
   })
 
   it('reach 밖 grab은 실패', () => {
