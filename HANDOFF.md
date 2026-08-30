@@ -11,7 +11,7 @@ _Last updated: 2026-08-30_
 코드       BUILD 10 — 사계절 배경(D-010, 250m 주기·oklab 보간·겨울 눈·덩굴 고리 앵커) + 이어하기
            광고 루프(D-009) + 카툰 렌더러(D-008) + 충전기 물리·`?p=b4` (D-006/7). 테스트 37개
 실플레이   BUILD 1: 156m→206m(≈15s). 피드백은 전부 D-006/7에 반영됨. BUILD 8은 미판정
-콘솔       junglehook 등록됨 · 테스트 배포 4회 (최신 BUILD 10) — tools/latest-deployment.json
+콘솔       junglehook 등록됨 · 테스트 배포 5회 (최신 B10+잎 앵커·계절 태양) — tools/latest-deployment.json
 디자인     밝은 카툰 정글 (D-008) + 사계절 (D-010 구현됨; 시간대·비 보류) — 설계도 `design/`
 다음       B10 실기기 판정(배포·문자 완료) → 효과음·점수 제출·뒤로가기 모달 (Phase 1 잔여)
 ```
