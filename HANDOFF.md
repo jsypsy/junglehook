@@ -24,7 +24,7 @@ _Last updated: 2026-08-30_
    - 카툰 비주얼: HUD 칩·숲 띠 배치 / 캐릭터 얼굴 / **성능**(구름·숲 물결 매 프레임 path)
    - 손맛: 기본(충전기) vs `/?p=b4` 5판씩. 한 판 30~60초인가
 2. 사계절(BUILD 10) 실기기 확인: 250m 경계 보간이 자연스러운지, 겨울 눈이 가독성을 해치지 않는지,
-   계절 칩 타이밍. 시간대·비는 보류 상태 — 원하면 같은 팔레트 보간 위에 얹는다 (`render/renderer.ts`
+   계절 진입 글자 안내 없음(결정). 시간대·비는 보류 상태 — 원하면 같은 팔레트 보간 위에 얹는다 (`render/renderer.ts`
    SEASON_PALETTE, `core/season.ts`)
 3. 튜닝 노브 (`src/core/tuning.ts`): rigidRope · swingPump 200 · swingMaxSpeed 1050 · minRope 130 ·
    airDrag 0.2 · reach 450 · targetBehindLimit 120 · maxContinues 2 · continueSpawn · camZoom · rampX 18000

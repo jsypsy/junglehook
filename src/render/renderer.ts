@@ -7,7 +7,7 @@
  */
 import type { Game } from '../core/game'
 import { meters } from '../core/game'
-import { SEASON_LABEL, seasonAt, type Season, type SeasonState } from '../core/season'
+import { seasonAt, type Season, type SeasonState } from '../core/season'
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
 import { mixHex } from './color'
@@ -107,10 +107,6 @@ const CLOUDS = [
 export class Renderer {
   private trail: Array<{ x: number; y: number }> = []
   private death: DeathFx | null = null
-  /** 계절이 바뀐 순간 — 칩을 잠깐 띄운다 */
-  private lastStage = 0
-  private seasonToastAt = -1e9
-  private seasonToastLabel = ''
   /** 결과 카드 버튼 영역 (화면 px) — 보이는 동안만 채워진다 */
   private deathButtons: { continue: Rect | null; retry: Rect | null } = { continue: null, retry: null }
 
@@ -150,17 +146,9 @@ export class Renderer {
     const dead = this.death
     const deadT = dead ? now - dead.t0 : 0
 
-    // 계절 — 거리로 결정, 경계에서 보간. 진입 순간 칩
+    // 계절 — 거리로 결정, 경계에서 보간. 글자 안내는 없다 (배경 변화만으로 충분, 사용자 결정)
     const st = seasonAt(meters(g))
     const pal = paletteFor(st)
-    if (g.phase === 'playing' && st.stage !== this.lastStage) {
-      if (st.stage > this.lastStage) {
-        this.seasonToastAt = now
-        this.seasonToastLabel = SEASON_LABEL[st.season]
-      }
-      this.lastStage = st.stage
-    }
-    if (g.phase === 'ready') this.lastStage = 0
 
     ctx.save()
     if (dead && deadT < 350) {
@@ -247,7 +235,6 @@ export class Renderer {
     this.drawForeground(cam, w, h, u, pal)
     this.drawSnow(st, w, h, u, now)
     this.drawHud(g, best, w, h, u, topInset, preset)
-    this.drawSeasonToast(w, u, topInset, now)
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
   }
 
@@ -271,21 +258,6 @@ export class Renderer {
     }
     ctx.globalAlpha = 1
   }
-
-  /** 계절 진입 칩 — 상단 중앙에서 1.6초 */
-  private drawSeasonToast(w: number, u: number, topInset: number, now: number): void {
-    const t = now - this.seasonToastAt
-    if (t < 0 || t > 1600 || !this.seasonToastLabel) return
-    const ctx = this.ctx
-    const a = t < 200 ? t / 200 : t > 1200 ? 1 - (t - 1200) / 400 : 1
-    ctx.save()
-    ctx.globalAlpha = clamp01(a)
-    ctx.translate(w / 2, topInset + 86 * u - (1 - clamp01(a)) * 8 * u)
-    this.pill(this.seasonToastLabel, 0, 0, `900 ${Math.round(16 * u)}px ${FONT}`, COL.card, COL.ink, 16 * u, 3 * u, u, false, 36 * u)
-    ctx.restore()
-  }
-
-  // ── 배경 ─────────────────────────────────────────────────────────
 
   /** 하늘·태양·구름·3겹 숲 — 화면 공간, 카메라 x로 패럴랙스 */
   private drawBackground(cam: Camera, w: number, h: number, u: number, topInset: number, pal: Palette): void {
