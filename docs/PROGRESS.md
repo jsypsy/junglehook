@@ -202,3 +202,15 @@
 - 렌더: `drawSuperPrompt`(카드/배지) + `drawSuperDemo`(4.6초 루프) + 게이지 틀·마커를 헬퍼로 분리(sweetCenter 반영).
   main: 매뉴얼 노출 횟수·"다시 안 보기" 히트. 크롬 검수: 카드·체크 토글·도전 시작 확인
 - `dayLabel` 365일↑ "Y년 D일". B24 = 위 + iOS 더블탭 수정. 배포
+
+## 2026-08-30 — BUILD 25 계절 나무 렌더러 반영 · 태양 후광 여름만
+
+- `src/render/tree.ts`: design/trees 규칙 포팅 — `skeleton(seed, depth)` 캐시(높이 1 정규 좌표, core Rng 결정론),
+  `drawTree`(잉크 패스 → 밑동 → 가지 채움(굵기 버킷별 한 패스) → 잎덩어리(아래 dark·가운데 base·위 hi) → 반사광),
+  `drawTreeSprite`(계절·잎 밀도·색별 오프스크린 캐시 40장, drawImage). 잎 밀도 봄 0.45·여름 1·가을 0.75·겨울 0,
+  경계에선 밀도·색 보간(스프라이트 키 때문에 blend 0.1 단위 양자화)
+- 렌더러: `drawCanopyLayer` 제거 → `drawTreeLayer` 먼 나무 4(실루엣, 땅 0.76h) → 숲 띠(forestFar) → 중간 나무 2(기둥, 땅 1.02h).
+  색 매핑 hi=forestFar·base=forestMid·dark=forestNear·trunk
+- 태양: 테두리 밖 후광은 여름 비중만큼만 (사용자 "봄·가을·겨울의 그 테두리가 AI 그림 같다, 겨울은 더 작아 보여야")
+- 크롬 검수: 사계절 스트립 캡처(순간이동 시 앵커 해제·찬스 k 9999로 캡처 스크립트 수정). 정상 상태 렌더 2.4~3.9ms/프레임
+  (맥 DPR 2, 눈·낙엽 포함). 직접 stroke 시 5ms → 스프라이트로 완화

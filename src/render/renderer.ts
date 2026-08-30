@@ -11,6 +11,7 @@ import { dayLabel, daysOf, seasonAt, type Season, type SeasonState } from '../co
 import { TUNING } from '../core/tuning'
 import { BUILD } from '../version'
 import { mixHex } from './color'
+import { drawTreeSprite } from './tree'
 
 /** 결과 카드가 필요로 하는 바깥 상태 */
 export interface DeathUi {
@@ -82,6 +83,14 @@ const SEASON_PALETTE: Record<Season, Palette> = {
   autumn: { player: '#ff9a3c', playerHi: '#ffd7b3', skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a', trunk: '#6e4426' },
   winter: { player: '#e4f1fb', playerHi: '#ffffff', skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3', trunk: '#6f7f88' },
 }
+/** 잎 밀도 (design/trees): 겨울 앙상한 가지만 → 봄 연둣빛 → 가을 → 여름 덩어리가 가지를 덮는다 */
+const LEAF_DENSITY: Record<Season, number> = { spring: 0.45, summer: 1, autumn: 0.75, winter: 0 }
+function leafOf(st: SeasonState): number {
+  const a = LEAF_DENSITY[st.prev]
+  const b = LEAF_DENSITY[st.season]
+  return a + (b - a) * st.blend
+}
+
 function paletteFor(st: SeasonState): Palette {
   const a = SEASON_PALETTE[st.prev]
   const b = SEASON_PALETTE[st.season]
@@ -681,12 +690,15 @@ export class Renderer {
       }
       ctx.restore()
     }
-    ctx.beginPath()
-    ctx.arc(sunX, sunY, R + 14 * u, 0, Math.PI * 2)
-    ctx.fillStyle = pal.glow
-    ctx.globalAlpha = 0.9
-    ctx.fill()
-    ctx.globalAlpha = 1
+    // 테두리 밖 후광은 여름(이글거림)에만 — 봄·가을·겨울은 외곽선까지만 그려 작고 담백하게 (사용자: "그 테두리가 AI 그림 같다")
+    if (summer > 0) {
+      ctx.beginPath()
+      ctx.arc(sunX, sunY, R + 14 * u, 0, Math.PI * 2)
+      ctx.fillStyle = pal.glow
+      ctx.globalAlpha = 0.9 * summer
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
     this.outlinedCircle(sunX, sunY, R, pal.sun, 3 * u)
     this.drawSunFace(sunX, sunY, R, st)
 
@@ -699,15 +711,20 @@ export class Renderer {
       }
     }
 
-    // 우거진 캐노피 (D-011): 먼 나무들(기둥 없이 덩어리) → 기둥 있는 중간 나무들 → 땅 → 앞쪽 양치식물.
-    // 나무는 띄엄띄엄 — 붙여 놓으면 물결 울타리로 읽힌다
-    this.drawCanopyLayer(cam, w, h, u, 0.3, 0.68, 620, [
-      { x: 40, r: 52 }, { x: 250, r: 60 }, { x: 450, r: 55 },
-    ], pal.forestFar, null, 0.93)
-    this.drawCanopyLayer(cam, w, h, u, 0.5, 0.735, 700, [
-      { x: 90, r: 72 }, { x: 400, r: 80 },
-    ], pal.forestMid, pal.trunk, 1)
-    this.drawForestBand(cam, w, h, u, 0.9, 0.75, 12, 80, pal.forestNear)
+    // 계절 나무 (design/trees, BUILD 25): 먼 나무들(실루엣, 발치는 숲 띠가 가림) → 숲 띠 → 기둥 있는 중간 나무들 → 땅 →
+    // 앞쪽 양치식물. 나무는 띄엄띄엄 — 붙여 놓으면 물결 울타리로 읽힌다. 겨울엔 가지만, 여름엔 덩어리가 가지를 덮는다
+    // 스프라이트 캐시 키에 색이 들어가므로 경계 보간(40m)은 0.1 단위로 양자화 — 전환 한 번에 재생성 11회
+    const stQ = { ...st, blend: Math.round(st.blend * 10) / 10 }
+    const palT = paletteFor(stQ)
+    const leaf = Math.round(leafOf(stQ) * 50) / 50
+    const colors = { ink: COL.ink, trunk: palT.trunk, dark: palT.forestNear, base: palT.forestMid, hi: palT.forestFar }
+    this.drawTreeLayer(cam, w, h, u, 0.3, 0.76, 620, [
+      { x: 30, h: 150, seed: 101 }, { x: 180, h: 175, seed: 102 }, { x: 320, h: 140, seed: 103 }, { x: 470, h: 165, seed: 104 },
+    ], leaf, { ...colors, base: palT.forestFar }, 1.5 * u, true)
+    this.drawForestBand(cam, w, h, u, 0.9, 0.75, 12, 80, pal.forestFar)
+    this.drawTreeLayer(cam, w, h, u, 0.5, 1.02, 700, [
+      { x: 96, h: 250, seed: 7 }, { x: 400, h: 275, seed: 11 },
+    ], leaf, colors, 3 * u, false)
     // 안개 띠 — 중경과 땅 사이
     const mistY = h * 0.8
     const mist = ctx.createLinearGradient(0, mistY - 40 * u, 0, mistY + 40 * u)
@@ -718,75 +735,32 @@ export class Renderer {
     ctx.fillRect(0, mistY - 40 * u, w, 80 * u)
   }
 
-  /**
-   * 둥근 잎덩어리 나무들 — 원 다섯 개 합집합(외곽선 먼저, 채움 나중). 주기 반복·패럴랙스.
-   * trunk가 있으면 덩어리 아래로 기둥을 땅까지 내린다. bottomFrac: 덩어리 몸통을 이 높이까지만 채운다
-   */
-  private drawCanopyLayer(
+  /** 나무 한 층 — 주기 반복·패럴랙스. 화면 밖 나무는 건너뛴다 */
+  private drawTreeLayer(
     cam: Camera,
     w: number,
     h: number,
     u: number,
     parallax: number,
-    yFrac: number,
+    groundFrac: number,
     periodPx: number,
-    trees: Array<{ x: number; r: number }>,
-    fill: string,
-    trunk: string | null,
-    bottomFrac: number,
+    trees: Array<{ x: number; h: number; seed: number }>,
+    leaf: number,
+    colors: { ink: string; trunk: string; dark: string; base: string; hi: string },
+    outline: number,
+    far: boolean,
   ): void {
-    const ctx = this.ctx
     const period = periodPx * u
     const off = ((-cam.x * parallax * u) % period + period) % period
-    const lobes = [
-      [0, 0, 1], [-0.8, 0.15, 0.75], [0.8, 0.15, 0.75], [-0.4, -0.45, 0.7], [0.4, -0.45, 0.7],
-    ]
-    const cy = h * yFrac
-    const bottom = h * bottomFrac + 10
-    // 기둥 먼저 (덩어리 뒤로 들어간다)
-    if (trunk) {
-      ctx.fillStyle = trunk
-      ctx.strokeStyle = COL.ink
-      ctx.lineWidth = 3 * u
-      ctx.lineJoin = 'round'
-      for (let k = -1; k * period + off < w + period; k++) {
-        for (const t of trees) {
-          const cx = k * period + off + t.x * u
-          if (cx < -100 * u || cx > w + 100 * u) continue
-          const r = t.r * u
-          const hw = r * 0.18
-          ctx.beginPath()
-          ctx.moveTo(cx - hw * 1.4, h + 10)
-          ctx.lineTo(cx - hw, cy + r * 0.3)
-          ctx.lineTo(cx + hw, cy + r * 0.3)
-          ctx.lineTo(cx + hw * 1.4, h + 10)
-          ctx.closePath()
-          ctx.fill()
-          ctx.stroke()
-        }
+    const gy = h * groundFrac
+    for (let k = -1; k * period + off < w + period; k++) {
+      for (const t of trees) {
+        const cx = k * period + off + t.x * u
+        const half = t.h * u * 0.9
+        if (cx < -half || cx > w + half) continue
+        drawTreeSprite(this.ctx, cx, gy, t.h * u, t.seed, leaf, colors, outline, far)
       }
     }
-    const pass = (color: string, grow: number) => {
-      ctx.fillStyle = color
-      for (let k = -1; k * period + off < w + period; k++) {
-        for (const t of trees) {
-          const cx = k * period + off + t.x * u
-          if (cx < -t.r * 2.2 * u || cx > w + t.r * 2.2 * u) continue
-          const r = t.r * u
-          for (const [dx, dy, rr] of lobes) {
-            ctx.beginPath()
-            ctx.arc(cx + dx! * r, cy + dy! * r, rr! * r + grow, 0, Math.PI * 2)
-            ctx.fill()
-          }
-          if (!trunk) {
-            // 먼 나무는 몸통을 아래로 조금 늘려 숲의 두께를 만든다
-            ctx.fillRect(cx - r * 1.2 - grow, cy, r * 2.4 + grow * 2, Math.max(0, bottom - cy))
-          }
-        }
-      }
-    }
-    pass(COL.ink, 3 * u)
-    pass(fill, 0)
   }
 
   /** 태양 표정 — 계절별. 경계에선 현재 계절 표정이 서서히 나타난다 */
