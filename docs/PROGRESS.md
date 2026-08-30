@@ -188,3 +188,8 @@
 - 사용자 "배경 나무 수정 — 겨울엔 앙상한 가지만, 여름엔 아주 초록 풍성하게". `design/trees/gen.py` → 해부도 + 사계절 보드 5장.
   규칙 하나(가지 뼈대 + 잎 밀도)로 사계절을 만들어 렌더러에 한 함수로 옮길 수 있게 함. 캔버스 링크는 design/README.md.
   렌더러 반영(drawCanopyLayer 교체)은 판정 뒤
+
+## 2026-08-30 — 아이폰 더블탭 돋보기 차단 (실기기 피드백)
+
+- 캔버스 더블탭에 iOS 텍스트 선택 루페가 뜸. index.html `-webkit-touch-callout: none` + pointer.ts touch 이벤트 non-passive
+  preventDefault(+contextmenu·dblclick·gesturestart). 플레이북 §9에 기록. 실기기 확인은 다음 배포(B24)에서

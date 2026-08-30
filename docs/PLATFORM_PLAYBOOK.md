@@ -265,6 +265,10 @@ claude mcp add apps-in-toss-console --transport http \
 - **로컬 CLI 세션은 클라우드로 옮길 수 없다** (이관은 클라우드→로컬 단방향)
 - 캔버스 드래그를 크롬 도구로 흉내 낼 때, 한줄팡에서는 **드롭 지점이 블록
   중심보다 약 110px 아래**여야 했다 (손가락 위 오프셋)
+- **아이폰 WebView에서 캔버스를 빠르게 더블탭하면 돋보기(텍스트 선택 루페)가 뜬다** (정글훅 실기기, 2026-08-30).
+  `user-select: none`·`touch-action: none`·pointer 이벤트 `preventDefault`만으로는 안 막힌다 — `-webkit-touch-callout:
+  none`을 html/body/캔버스에 주고, `touchstart/touchmove/touchend`를 **non-passive로 잡아 `preventDefault`** 해야 한다
+  (`src/input/pointer.ts`). `contextmenu`·`dblclick`·`gesturestart`도 같이 막는다
 
 ---
 
