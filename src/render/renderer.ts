@@ -59,8 +59,9 @@ interface Palette {
   vine: string
 }
 const SEASON_PALETTE: Record<Season, Palette> = {
-  spring: { skyTop: '#bfe8f5', skyBottom: '#eaf7d6', sun: '#ffe680', glow: '#fff3b0', cloud: '#ffffff', forestFar: '#a9dc8e', forestMid: '#5fbf6e', forestNear: '#2f8f4e', leaf: '#1f6b3c', vine: '#2f8f4e' },
-  summer: { skyTop: '#6fc8f2', skyBottom: '#cdeeff', sun: '#ffd23a', glow: '#fff2a8', cloud: '#ffffff', forestFar: '#79c96f', forestMid: '#3aa652', forestNear: '#1f8341', leaf: '#125f2e', vine: '#2a8f45' },
+  // 봄: 파스텔 연두·분홍기 도는 하늘, 벚꽃잎 / 여름: 진한 파랑 하늘·짙은 녹색 — 두 계절이 한눈에 갈리게
+  spring: { skyTop: '#cfe9f6', skyBottom: '#fbeef0', sun: '#ffe9a0', glow: '#fff6c8', cloud: '#ffffff', forestFar: '#d6ecb0', forestMid: '#a5d98a', forestNear: '#6cbf6f', leaf: '#3f9a58', vine: '#6cbf6f' },
+  summer: { skyTop: '#3fb0ea', skyBottom: '#a9e2ff', sun: '#ffcc1f', glow: '#fff0a0', cloud: '#ffffff', forestFar: '#5cc06a', forestMid: '#2c9c4b', forestNear: '#177a3a', leaf: '#0d5a2a', vine: '#1f8a40' },
   autumn: { skyTop: '#b8dff0', skyBottom: '#f7e6c8', sun: '#ffd94d', glow: '#fff0a0', cloud: '#fff8ee', forestFar: '#e0b35a', forestMid: '#d47f3a', forestNear: '#a34d2a', leaf: '#6b3520', vine: '#8a5a2a' },
   winter: { skyTop: '#aebfcb', skyBottom: '#e6edf1', sun: '#fff4c2', glow: '#ffffff', cloud: '#c9d5dc', forestFar: '#dfe9ec', forestMid: '#b9cdd6', forestNear: '#8ea9b6', leaf: '#5e7a88', vine: '#7f95a3' },
 }
@@ -155,7 +156,7 @@ export class Renderer {
       const k = (1 - deadT / 350) * 9 * u
       ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k)
     }
-    this.drawBackground(cam, w, h, u, topInset, pal)
+    this.drawBackground(cam, w, h, u, topInset, pal, st)
 
     const toX = (wx: number) => (wx - cam.x) * s
     const toY = (wy: number) => h / 2 + (wy - TUNING.viewH / 2) * s // 줌은 화면 세로 중앙 기준
@@ -238,29 +239,50 @@ export class Renderer {
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
   }
 
-  /** 겨울 눈 — 상태 없는 결정론 패턴(시간·인덱스). 겨울 진행도에 따라 개수·속도가 는다 */
+  /** 계절 입자 — 겨울 눈(갈수록 거세짐), 봄 벚꽃잎. 상태 없는 결정론 패턴(시간·인덱스) */
   private drawSnow(st: SeasonState, w: number, h: number, u: number, now: number): void {
-    const wCur = st.season === 'winter' ? st.blend : 0
-    const wPrev = st.prev === 'winter' && st.blend < 1 ? 1 - st.blend : 0
-    const weight = Math.max(wCur, wPrev)
-    if (weight <= 0) return
-    const intensity = st.season === 'winter' ? st.progress : 1
-    const count = Math.round(18 + 50 * intensity)
+    const weightOf = (season: Season) =>
+      Math.max(st.season === season ? st.blend : 0, st.prev === season && st.blend < 1 ? 1 - st.blend : 0)
     const t = now / 1000
     const ctx = this.ctx
-    ctx.globalAlpha = weight * 0.9
-    for (let i = 0; i < count; i++) {
-      const speed = (40 + 50 * intensity) * (0.7 + ((i * 37) % 10) / 20)
-      const x = (((i * 97.3) % w) + Math.sin(t * 0.8 + i) * 14 * u + w) % w
-      const y = (((i * 53.7) % h) + t * speed * u) % h
-      const r = (2 + ((i * 13) % 3)) * u
-      this.outlinedCircle(x, y, r, '#ffffff', 1 * u)
+    const snow = weightOf('winter')
+    if (snow > 0) {
+      const intensity = st.season === 'winter' ? st.progress : 1
+      const count = Math.round(18 + 50 * intensity)
+      ctx.globalAlpha = snow * 0.9
+      for (let i = 0; i < count; i++) {
+        const speed = (40 + 50 * intensity) * (0.7 + ((i * 37) % 10) / 20)
+        const x = (((i * 97.3) % w) + Math.sin(t * 0.8 + i) * 14 * u + w) % w
+        const y = (((i * 53.7) % h) + t * speed * u) % h
+        const r = (2 + ((i * 13) % 3)) * u
+        this.outlinedCircle(x, y, r, '#ffffff', 1 * u)
+      }
+      ctx.globalAlpha = 1
     }
-    ctx.globalAlpha = 1
+    const petals = weightOf('spring')
+    if (petals > 0) {
+      ctx.globalAlpha = petals * 0.85
+      for (let i = 0; i < 14; i++) {
+        const x = (((i * 131.7) % w) + Math.sin(t * 0.6 + i * 1.7) * 26 * u + t * 22 * u + w * 4) % w
+        const y = (((i * 71.3) % h) + t * 28 * u * (0.8 + ((i * 7) % 5) / 10)) % h
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(t * 1.5 + i)
+        ctx.beginPath()
+        ctx.ellipse(0, 0, 4.5 * u, 2.8 * u, 0, 0, Math.PI * 2)
+        ctx.fillStyle = '#ffb7c9'
+        ctx.fill()
+        ctx.strokeStyle = COL.ink
+        ctx.lineWidth = 1 * u
+        ctx.stroke()
+        ctx.restore()
+      }
+      ctx.globalAlpha = 1
+    }
   }
 
   /** 하늘·태양·구름·3겹 숲 — 화면 공간, 카메라 x로 패럴랙스 */
-  private drawBackground(cam: Camera, w: number, h: number, u: number, topInset: number, pal: Palette): void {
+  private drawBackground(cam: Camera, w: number, h: number, u: number, topInset: number, pal: Palette, st: SeasonState): void {
     const ctx = this.ctx
     const grad = ctx.createLinearGradient(0, 0, 0, h)
     grad.addColorStop(0, pal.skyTop)
@@ -268,16 +290,42 @@ export class Renderer {
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
-    // 태양 (고정)
+    // 태양 — 계절 캐릭터: 봄 미소 / 여름 크고 이글거리며 화난 얼굴 / 가을 나른한 반눈 / 겨울 창백하게 눈 감음
     const sunX = w - 75 * u
     const sunY = topInset + 96 * u
+    const summer = Math.max(st.season === 'summer' ? st.blend : 0, st.prev === 'summer' && st.blend < 1 ? 1 - st.blend : 0)
+    const R = (40 + 8 * summer) * u
+    if (summer > 0) {
+      // 광선 — 천천히 돌며 이글거린다
+      ctx.save()
+      ctx.translate(sunX, sunY)
+      ctx.rotate((performance.now() / 1000) * 0.25)
+      ctx.globalAlpha = summer
+      ctx.fillStyle = pal.sun
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 2.5 * u
+      ctx.lineJoin = 'round'
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2
+        const len = (i % 2 === 0 ? 30 : 20) * u
+        ctx.beginPath()
+        ctx.moveTo(Math.cos(a - 0.14) * (R + 6 * u), Math.sin(a - 0.14) * (R + 6 * u))
+        ctx.lineTo(Math.cos(a) * (R + 6 * u + len), Math.sin(a) * (R + 6 * u + len))
+        ctx.lineTo(Math.cos(a + 0.14) * (R + 6 * u), Math.sin(a + 0.14) * (R + 6 * u))
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+      }
+      ctx.restore()
+    }
     ctx.beginPath()
-    ctx.arc(sunX, sunY, 54 * u, 0, Math.PI * 2)
+    ctx.arc(sunX, sunY, R + 14 * u, 0, Math.PI * 2)
     ctx.fillStyle = pal.glow
     ctx.globalAlpha = 0.9
     ctx.fill()
     ctx.globalAlpha = 1
-    this.outlinedCircle(sunX, sunY, 40 * u, pal.sun, 3 * u)
+    this.outlinedCircle(sunX, sunY, R, pal.sun, 3 * u)
+    this.drawSunFace(sunX, sunY, R, st)
 
     // 구름 (패럴랙스 0.15, 주기 반복)
     const period = CLOUD_PERIOD * u
@@ -292,6 +340,80 @@ export class Renderer {
     this.drawForestBand(cam, w, h, u, 0.694, 0.3, 22, 95, pal.forestFar)
     this.drawForestBand(cam, w, h, u, 0.775, 0.5, 20, 80, pal.forestMid)
     this.drawForestBand(cam, w, h, u, 0.855, 0.75, 18, 70, pal.forestNear)
+  }
+
+  /** 태양 표정 — 계절별. 경계에선 현재 계절 표정이 서서히 나타난다 */
+  private drawSunFace(x: number, y: number, R: number, st: SeasonState): void {
+    const ctx = this.ctx
+    ctx.save()
+    ctx.globalAlpha = st.blend
+    ctx.strokeStyle = COL.ink
+    ctx.fillStyle = COL.ink
+    ctx.lineCap = 'round'
+    const ex = R * 0.36
+    const ey = -R * 0.12
+    const lw = Math.max(1.5, R * 0.08)
+    switch (st.season) {
+      case 'spring': {
+        // 순한 미소: 둥근 눈 + 작은 웃음
+        for (const dx of [-ex, ex]) {
+          ctx.beginPath()
+          ctx.arc(x + dx, y + ey, R * 0.07, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        ctx.beginPath()
+        ctx.arc(x, y + R * 0.15, R * 0.3, 0.15 * Math.PI, 0.85 * Math.PI)
+        ctx.lineWidth = lw
+        ctx.stroke()
+        break
+      }
+      case 'summer': {
+        // 화난 얼굴: 치켜 올라간 눈썹 + 찡그린 입
+        ctx.lineWidth = lw * 1.3
+        for (const sgn of [-1, 1]) {
+          ctx.beginPath()
+          ctx.moveTo(x + sgn * ex * 1.5, y + ey - R * 0.3)
+          ctx.lineTo(x + sgn * ex * 0.45, y + ey - R * 0.12)
+          ctx.stroke()
+          ctx.beginPath()
+          ctx.arc(x + sgn * ex, y + ey + R * 0.02, R * 0.085, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        ctx.beginPath()
+        ctx.arc(x, y + R * 0.55, R * 0.3, 1.2 * Math.PI, 1.8 * Math.PI)
+        ctx.lineWidth = lw
+        ctx.stroke()
+        break
+      }
+      case 'autumn': {
+        // 나른함: 반쯤 감긴 눈(윗선) + 작은 일자 입
+        ctx.lineWidth = lw
+        for (const dx of [-ex, ex]) {
+          ctx.beginPath()
+          ctx.arc(x + dx, y + ey, R * 0.1, 0.05 * Math.PI, 0.95 * Math.PI)
+          ctx.stroke()
+        }
+        ctx.beginPath()
+        ctx.moveTo(x - R * 0.14, y + R * 0.22)
+        ctx.lineTo(x + R * 0.14, y + R * 0.22)
+        ctx.stroke()
+        break
+      }
+      case 'winter': {
+        // 눈 감음(아랫선) + 볼 붉은기 없는 창백함
+        ctx.lineWidth = lw
+        for (const dx of [-ex, ex]) {
+          ctx.beginPath()
+          ctx.arc(x + dx, y + ey + R * 0.03, R * 0.1, 1.1 * Math.PI, 1.9 * Math.PI)
+          ctx.stroke()
+        }
+        ctx.beginPath()
+        ctx.arc(x, y + R * 0.2, R * 0.12, 0.2 * Math.PI, 0.8 * Math.PI)
+        ctx.stroke()
+        break
+      }
+    }
+    ctx.restore()
   }
 
   private drawCloud(x: number, y: number, k: number, fill: string): void {
@@ -392,24 +514,32 @@ export class Renderer {
     ctx.stroke()
   }
 
-  /** 앵커 = 덩굴 끝이 말려 만든 고리 — 덩굴과 같은 색, 가운데가 비어 "여기에 건다"가 읽힌다 (D-010) */
+  /** 앵커 = 덩굴 끝 나뭇잎 (사용자 결정). 잎 중심이 로프가 걸리는 점. 계절 색을 따른다 */
   private drawLoop(x: number, y: number, r: number, s: number, vine: string): void {
     const ctx = this.ctx
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(-0.55)
+    const L = r * 2.1
+    const W = r * 1.15
     ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.strokeStyle = COL.ink
-    ctx.lineWidth = 7.5 * s
-    ctx.stroke()
-    ctx.strokeStyle = vine
-    ctx.lineWidth = 4 * s
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.ellipse(x + r * 1.4, y - r * 0.9, 6 * s, 3 * s, -0.6, 0, Math.PI * 2)
+    ctx.moveTo(0, -L)
+    ctx.quadraticCurveTo(W, -L * 0.35, 0, L * 0.55)
+    ctx.quadraticCurveTo(-W, -L * 0.35, 0, -L)
+    ctx.closePath()
     ctx.fillStyle = vine
     ctx.fill()
     ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 2.5 * s
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(0, -L * 0.8)
+    ctx.lineTo(0, L * 0.4)
+    ctx.strokeStyle = 'rgba(31,58,42,0.55)'
     ctx.lineWidth = 1.5 * s
     ctx.stroke()
+    ctx.restore()
   }
 
   // ── 플레이어·연출 ─────────────────────────────────────────────────
