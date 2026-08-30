@@ -240,7 +240,7 @@ export class Renderer {
     if (dead) this.drawDeathCard(g, best, w, h, u, deadT, ui)
   }
 
-  /** 계절 입자 — 겨울 눈(갈수록 거세짐), 봄 벚꽃잎. 상태 없는 결정론 패턴(시간·인덱스) */
+  /** 계절 입자 — 겨울 눈(갈수록 거세짐). 상태 없는 결정론 패턴(시간·인덱스). 봄 꽃잎은 지저분해 제거 */
   private drawSnow(st: SeasonState, w: number, h: number, u: number, now: number): void {
     const weightOf = (season: Season) =>
       Math.max(st.season === season ? st.blend : 0, st.prev === season && st.blend < 1 ? 1 - st.blend : 0)
@@ -260,26 +260,7 @@ export class Renderer {
       }
       ctx.globalAlpha = 1
     }
-    const petals = weightOf('spring')
-    if (petals > 0) {
-      ctx.globalAlpha = petals * 0.85
-      for (let i = 0; i < 14; i++) {
-        const x = (((i * 131.7) % w) + Math.sin(t * 0.6 + i * 1.7) * 26 * u + t * 22 * u + w * 4) % w
-        const y = (((i * 71.3) % h) + t * 28 * u * (0.8 + ((i * 7) % 5) / 10)) % h
-        ctx.save()
-        ctx.translate(x, y)
-        ctx.rotate(t * 1.5 + i)
-        ctx.beginPath()
-        ctx.ellipse(0, 0, 4.5 * u, 2.8 * u, 0, 0, Math.PI * 2)
-        ctx.fillStyle = '#ffb7c9'
-        ctx.fill()
-        ctx.strokeStyle = COL.ink
-        ctx.lineWidth = 1 * u
-        ctx.stroke()
-        ctx.restore()
-      }
-      ctx.globalAlpha = 1
-    }
+
   }
 
   /** 하늘·태양·구름·3겹 숲 — 화면 공간, 카메라 x로 패럴랙스 */
