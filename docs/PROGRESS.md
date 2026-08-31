@@ -288,3 +288,14 @@
   지나가는 길이라 오히려 겹칠 확률이 높다
 - 크롬 검수: 여름 구간(375m) + best 1366으로 캡처해 태양 자리가 완전히 비는 것 확인. 테스트 54개 통과
 
+## 2026-08-31 — BUILD 30 iOS 브라우저에서 캔버스가 주소창 뒤로 밀리던 것
+
+- 로컬 개발서버를 폰(아이폰 크롬)으로 열었더니 HUD 두 칩이 안 보이고 화면 아래에 하늘색 띠가 남았다
+- 원인: `#game`은 `position: fixed; top: 0`인데 iOS(사파리·크롬 모두 WebKit)에서 fixed는 **레이아웃 뷰포트**
+  기준이다. 주소창이 떠 있으면 시각 뷰포트가 그만큼 내려가 있어 캔버스 윗부분이 주소창 뒤로 들어가고,
+  높이는 `visualViewport.height`라 아래쪽에 body 배경(`#bfe8f5`)이 드러난다
+- 수정: `resize()`에서 `canvas.style.top/left`를 `visualViewport.offsetTop/offsetLeft`로. 주소창이 접히고
+  펴질 때는 resize가 아니라 **scroll**로 오므로 `visualViewport`의 scroll도 듣는다.
+  토스 WebView는 주소창이 없어 둘 다 0 — 배포본 동작에는 영향 없다
+- 같은 세션 실기기 확인: HUD 왼쪽 스택(B29)이 의도대로 보이고, 매뉴얼 카드(B27 수정)도 정상 복구됐다
+

@@ -67,6 +67,12 @@ function resize(): void {
   // CSS 크기를 픽셀로 못 박는다 — 100%에 맡기면 사파리에서 캔버스 밖(검은 영역)이 남는다
   canvas.style.width = `${w}px`
   canvas.style.height = `${h}px`
+  // iOS 사파리의 `position: fixed`는 **레이아웃** 뷰포트 기준이라, 주소창이 떠 있으면 캔버스 윗부분이
+  // 주소창 뒤로 밀려 HUD가 잘리고 아래엔 body 배경 띠가 남는다 (2026-08-31 실기기). 시각 뷰포트의
+  // 오프셋만큼 내려 붙인다 — 토스 WebView는 주소창이 없어 둘 다 0이므로 영향 없다
+  const vv = window.visualViewport
+  canvas.style.top = `${Math.round(vv?.offsetTop ?? 0)}px`
+  canvas.style.left = `${Math.round(vv?.offsetLeft ?? 0)}px`
   canvas.width = Math.round(w * dpr)
   canvas.height = Math.round(h * dpr)
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -190,6 +196,8 @@ async function boot(): Promise<void> {
   platform.applyScreenPolicy()
   window.addEventListener('resize', resize)
   window.visualViewport?.addEventListener('resize', resize)
+  // 주소창이 접히고 펴질 때는 resize가 아니라 scroll로 온다 (오프셋만 바뀐다)
+  window.visualViewport?.addEventListener('scroll', resize)
   resize()
   requestAnimationFrame(frame)
 }
