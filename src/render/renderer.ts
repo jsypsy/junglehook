@@ -1179,12 +1179,27 @@ export class Renderer {
       ctx.fill()
     }
     ctx.globalAlpha = 1
-    // 로켓 불꽃 — 큰 화염 하나 + 작은 화염 둘. 셋이 각자 위상으로 길이·꼬리가 따로 논다 (BUILD 28,
-    // 사용자 "세모 꼬깔 하나라 미비하다"). 같은 꼭짓점에서 겹친 삼각형 셋은 아무리 색을 나눠도 한 덩이로 읽힌다
-    // 큰 화염이 먼저(뒤), 작은 둘이 위 — 반대로 그리면 작은 화염이 큰 화염 아가리에 삼켜져 하나로 보인다
-    this.drawPlume(x - 14 * s, y, 120 * s, 19 * s, 0, 0, s, now)
-    this.drawPlume(x - 10 * s, y + 11 * s, 74 * s, 11 * s, 0.62, 2.1, s, now)
-    this.drawPlume(x - 10 * s, y - 11 * s, 66 * s, 10 * s, -0.68, 4.2, s, now)
+    // 로켓 불꽃 — 굵은 화염 하나 + 뒤로 흩어지는 불똥 (BUILD 31). 갈래를 셋으로 나눠봤지만(B28~) 캐릭터가
+    // 44px 남짓이라 갈래 사이 틈이 2px밖에 안 되고, 속도선·번개·잔상과 겹쳐 빗살 노이즈로 읽혔다.
+    // 이 크기에서 불을 팔아주는 건 갈래 수가 아니라 움직임이다 — 실루엣은 하나로 두고 길이·꼬리를 흔든다
+    this.drawPlume(x - 12 * s, y, 128 * s, 17 * s, 0, 0, s, now)
+    // 불똥 — 화염 끝 너머로 떨어져 나가 작아지며 사라진다. 각자 다른 주기로 떠서 "갈래"의 산만함 없이 흩어짐만 준다
+    for (let i = 0; i < 5; i++) {
+      const t = ((now / (620 + i * 130)) + i * 0.37) % 1
+      const ex = x - (30 + t * 150) * s
+      const ey = y + Math.sin(i * 2.1 + t * 3.4) * (7 + i * 3) * s
+      const er = (4.2 - t * 3) * s
+      if (er <= 0.4) continue
+      ctx.globalAlpha = 1 - t
+      ctx.beginPath()
+      ctx.arc(ex, ey, er, 0, Math.PI * 2)
+      ctx.fillStyle = i % 2 === 0 ? COL.sonicFlame : COL.player
+      ctx.fill()
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 1.4 * s
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
     this.drawLightning(x, y, 22 * s, s, now)
   }
 
@@ -1205,8 +1220,8 @@ export class Renderer {
       const hh = half * k
       ctx.beginPath()
       ctx.moveTo(0, -hh)
-      ctx.quadraticCurveTo(-l * 0.45, -hh * 1.25, -l, wob * k)
-      ctx.quadraticCurveTo(-l * 0.45, hh * 1.25, 0, hh)
+      ctx.quadraticCurveTo(-l * 0.45, -hh * 1.05, -l, wob * k)
+      ctx.quadraticCurveTo(-l * 0.45, hh * 1.05, 0, hh)
       ctx.closePath()
       ctx.fillStyle = fill
       ctx.fill()
@@ -1223,7 +1238,7 @@ export class Renderer {
     ctx.restore()
   }
 
-  /** 토르식 전기 — 플레이어 주위 번개 아크(흰 심 + 파란 광채)가 프레임마다 다르게 번쩍인다 */
+  /** 토르식 전기 — 플레이어 주위 번개 아크(흰 심 + 붉은 광채)가 프레임마다 다르게 번쩍인다 */
   private drawLightning(x: number, y: number, r: number, s: number, now: number): void {
     const ctx = this.ctx
     const frame = Math.floor(now / 45) // 45ms마다 새 패턴
@@ -1265,6 +1280,9 @@ export class Renderer {
       ctx.strokeStyle = 'rgba(255,127,63,0.9)'
       ctx.lineWidth = 3.5 * s
       ctx.stroke()
+      // 푸른 스파크는 실험 후 기각 (BUILD 31): 아크가 6/3.5/1.8px로 얇아 안쪽을 식히면 파랑이 아니라
+      // 흐린 분홍으로 읽히고, 확실히 파랗게 하려면 아크 전체를 식혀야 하는데 그러면 D-012의 근거
+      // (시스템 노랑 → 발동색으로 이어지는 인과, 주인공이 불붙은 것으로 보이는 것)가 깨진다
       path()
       ctx.strokeStyle = '#ffffff'
       ctx.lineWidth = 1.8 * s
@@ -1633,7 +1651,10 @@ export class Renderer {
 
   private drawHud(g: Game, best: number, w: number, h: number, u: number, topInset: number, preset: string | null): void {
     const ctx = this.ctx
-    const top = topInset + 14 * u
+    // 위 여백 30u — 태양은 계절마다 R이 28~56u로 변해 가장자리가 고정 기준이 못 되고, 중심(topInset+96u)만
+    // 고정이다. 최고기록 칩의 중심(top + 44 + 6 + 16)을 거기에 맞춘다: 30 + 66 = 96u (BUILD 31,
+    // 사용자 "점수 영역과 태양 영역의 줄이 어긋나 보인다")
+    const top = topInset + 30 * u
     ctx.textBaseline = 'alphabetic'
     // 거리 칩 (왼쪽 위)
     ctx.font = `900 ${Math.round(26 * u)}px ${FONT}`
