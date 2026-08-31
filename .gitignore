@@ -11,3 +11,9 @@ dist/
 tools/deploy-qr.png
 # 아이메시지 수신자 (개인정보 — 공개 저장소라 커밋 금지)
 tools/imessage.local.json
+
+# 디자인 캔버스 **게시본** — 캔버스 에디터 코드가 통째로 들어가 한 장에 2MB대다 (푸시가 HTTP 400으로
+# 튕겼다, 2026-08-31). 원본은 `*.dc.html` + `canvas.json`이고 게시 링크는 design/README.md에 있다.
+# 다시 필요하면 `/design` 스킬로 원본에서 구우면 된다
+design/**/*.html
+!design/**/*.dc.html
