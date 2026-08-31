@@ -1182,90 +1182,62 @@ export class Renderer {
       ctx.fill()
     }
     ctx.globalAlpha = 1
-    // 로켓 불꽃 — 뒤로 뻗는 삼각 불꽃 두 겹, 깜빡임
-    const flick = 0.8 + 0.2 * Math.sin(now / 35)
-    const flame = (len: number, half: number, fill: string): void => {
+    // 로켓 불꽃 — 노즐에서 부채꼴로 퍼지는 삐죽삐죽한 세 겹 (BUILD 31, 사용자가 보여준 크레용 로켓 그림)
+    this.drawFlameFan(x - 12 * s, y, 80 * s, 0.34, 3, COL.sonicHot, 25, 0, s, now)
+    this.drawFlameFan(x - 12 * s, y, 56 * s, 0.26, 3, COL.player, 18, 1.7, s, now)
+    this.drawFlameFan(x - 12 * s, y, 34 * s, 0.18, 2, COL.sonicFlame, 13, 3.4, s, now)
+    // 튀는 불똥 — 참고 그림의 검은 점들처럼 덩어리에서 떨어져 나가 작아진다
+    for (let i = 0; i < 4; i++) {
+      const t = ((now / (700 + i * 160)) + i * 0.41) % 1
+      const r = (3.6 - t * 2.6) * s
+      if (r <= 0.5) continue
       ctx.beginPath()
-      ctx.moveTo(x - 12 * s, y - half)
-      ctx.lineTo(x - 12 * s - len * flick, y)
-      ctx.lineTo(x - 12 * s, y + half)
-      ctx.closePath()
-      ctx.fillStyle = fill
+      ctx.arc(x - (74 + t * 78) * s, y + Math.sin(i * 2.3 + t * 3.1) * (10 + i * 5) * s, r, 0, Math.PI * 2)
+      ctx.fillStyle = COL.ink
+      ctx.globalAlpha = 1 - t * 0.7
       ctx.fill()
-      ctx.strokeStyle = COL.ink
-      ctx.lineWidth = 2 * s
-      ctx.lineJoin = 'round'
-      ctx.stroke()
     }
-    flame(76 * s, 18 * s, COL.sonicHot)
-    flame(54 * s, 12 * s, COL.player)
-    flame(32 * s, 6 * s, COL.sonicFlame)
-    this.drawLightning(x, y, 22 * s, s, now)
+    ctx.globalAlpha = 1
   }
 
   /**
-   * 전기 아크 — 얇은 심 + 옅은 광채, 잔마디 지그재그, 짧은 가지. 프레임마다 새로 그린다.
-   * (BUILD 31, 사용자 "거미 다리 같다") 예전엔 6px 굵기에 마디 3~4개가 사방으로 뻗어 다리로 읽혔다.
-   * 진짜처럼 보이게 하는 건 굵기가 아니라 **잔마디·가지·뒤로 흐르는 방향**이다
+   * 화염 한 겹 — **굵은 획을 부채꼴로 여러 번 그어** 만든다 (BUILD 31, 사용자가 보여준 크레용 로켓 그림).
+   *
+   * 이게 앞선 네 번의 실패와 갈리는 지점이다: 물방울·톱니·손그림 boil·원 사슬은 전부 **닫힌 면을 칠하는**
+   * 방식이었고, 면은 아무리 흔들어도 도형으로 읽힌다. 아이가 크레용으로 그린 불은 면이 아니라 **획의 뭉치**다 —
+   * 길이가 제각각인 획이 겹치면 끝이 저절로 삐죽삐죽해지고, 겹친 자리가 진해지며, 손으로 그은 맛이 난다
    */
-  private drawLightning(x: number, y: number, r: number, s: number, now: number): void {
+  private drawFlameFan(ox: number, oy: number, len: number, spread: number, strokes: number, color: string, width: number, ph: number, s: number, now: number): void {
     const ctx = this.ctx
-    const frame = Math.floor(now / 38) // 38ms마다 새 패턴 — 눈이 못 따라올 만큼 빠르게 갈아탄다
-    const rnd = (i: number): number => {
-      const v = Math.sin(frame * 12.9898 + i * 78.233) * 43758.5453
-      return v - Math.floor(v)
-    }
-    // 열 오라
-    ctx.beginPath()
-    ctx.arc(x, y, r * 1.7, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,204,51,0.26)'
-    ctx.fill()
+    const osc = (rate: number, phase: number): number =>
+      0.62 * Math.sin(now / rate + phase) + 0.38 * Math.sin(now / (rate * 1.87) + phase * 1.6)
+    ctx.save()
     ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    /** 한 줄기 — 시작점·방향에서 잔마디로 뻗어 나간 점들 */
-    const bolt = (px0: number, py0: number, dir: number, len: number, segs: number, jit: number, seed: number): Array<[number, number]> => {
-      let px = px0
-      let py = py0
-      const pts: Array<[number, number]> = [[px, py]]
-      for (let k = 1; k <= segs; k++) {
-        const decay = 1 - (k / segs) * 0.5 // 끝으로 갈수록 잔떨림이 준다
-        const d = dir + (rnd(seed + k) - 0.5) * 0.9
-        const j = (rnd(seed + k + 41) - 0.5) * jit * decay
-        px += Math.cos(d) * (len / segs) + Math.cos(d + Math.PI / 2) * j
-        py += Math.sin(d) * (len / segs) + Math.sin(d + Math.PI / 2) * j
-        pts.push([px, py])
-      }
-      return pts
-    }
-    const line = (pts: Array<[number, number]>, w: number, color: string): void => {
+    ctx.strokeStyle = color
+    for (let i = 0; i < strokes; i++) {
+      const t = strokes === 1 ? 0.5 : i / (strokes - 1)
+      const a = -spread + spread * 2 * t
+      // 가운데 획이 길고 바깥으로 갈수록 짧다 + 획마다 따로 늘었다 줄었다
+      // 가운데 획은 자리를 잡고 있어야 한다 — 전부 같이 흔들면 오징어 다리처럼 보인다 (사용자).
+      // mid=1(가운데)일수록 길이·휨의 진폭이 0에 가깝고, 바깥 획만 일렁인다
+      const mid = 1 - Math.abs(t - 0.5) * 2
+      const wig = 1 - mid * 0.88
+      const bow = 0.68 + 0.32 * Math.cos(a * (Math.PI / 2 / spread))
+      const l = len * bow * (1 - 0.22 * wig + 0.22 * wig * osc(118 + i * 29, ph + i * 1.7))
+      const sway = 0.1 * wig * osc(150 + i * 23, ph + i * 2.3) // 바깥 획이 살짝 휜다
+      const x0 = ox - Math.cos(a) * len * 0.1
+      const y0 = oy + Math.sin(a) * len * 0.1
+      const mx = ox - Math.cos(a + sway * 0.5) * l * 0.55
+      const my = oy + Math.sin(a + sway * 0.5) * l * 0.55
+      const ex = ox - Math.cos(a + sway) * l
+      const ey = oy + Math.sin(a + sway) * l
       ctx.beginPath()
-      ctx.moveTo(pts[0]![0], pts[0]![1])
-      for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k]![0], pts[k]![1])
-      ctx.strokeStyle = color
-      ctx.lineWidth = w * s
+      ctx.moveTo(x0, y0)
+      ctx.quadraticCurveTo(mx, my, ex, ey)
+      ctx.lineWidth = width * s * (1 - 0.18 * wig + 0.18 * wig * osc(88 + i * 17, ph + i))
       ctx.stroke()
     }
-    const n = 4 + Math.floor(rnd(99) * 3)
-    for (let b = 0; b < n; b++) {
-      const seed = b * 17 + 3
-      // 시작점은 몸 둘레, 방향은 대체로 뒤(π) 쪽 — 앞으로 뻗으면 다리처럼 보인다
-      const a0 = Math.PI + (rnd(seed) - 0.5) * 2.6
-      const px0 = x + Math.cos(a0) * r * 0.95
-      const py0 = y + Math.sin(a0) * r * 0.95
-      const dir = a0 + (rnd(seed + 1) - 0.5) * 1.1
-      const len = r * (0.6 + rnd(seed + 2) * 0.9)
-      const pts = bolt(px0, py0, dir, len, 7 + Math.floor(rnd(seed + 3) * 4), r * 0.22, seed + 100)
-      line(pts, 3.6, 'rgba(255,150,70,0.45)') // 옅은 광채
-      line(pts, 1.4, 'rgba(255,250,235,1)') // 얇은 심
-      // 가지 — 중간 마디에서 짧게 갈라진다
-      if (rnd(seed + 4) > 0.45) {
-        const at = 1 + Math.floor(rnd(seed + 5) * (pts.length - 2))
-        const [bx, by] = pts[at]!
-        const br = bolt(bx, by, dir + (rnd(seed + 6) - 0.5) * 1.8, len * 0.45, 4, r * 0.18, seed + 200)
-        line(br, 2.4, 'rgba(255,150,70,0.28)')
-        line(br, 0.9, 'rgba(255,246,224,0.85)')
-      }
-    }
+    ctx.restore()
   }
 
   /** 소닉 찬스 알림 — 로프가 걸린 앵커에서 파열 링·방사선 + 화면 플래시 (멈춤 동안) */
