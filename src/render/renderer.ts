@@ -1644,13 +1644,15 @@ export class Renderer {
     ctx.fillStyle = COL.ink
     ctx.textAlign = 'left'
     ctx.fillText(dist, 14 * u + 15 * u, top + dh / 2 + 9 * u)
-    // 최고 기록 칩 (오른쪽 위) — 별 + 숫자
+    // 최고 기록 칩 (거리 칩 바로 아래) — 별 + 숫자. 오른쪽 위는 태양 자리다: 태양은 화면 고정(w-75u, +96u)이고
+    // 여름엔 R이 56u까지 커져 오른쪽 정렬 칩과 매번 겹쳤다 (BUILD 29, 실기기 스크린샷). 같은 단위(일수) 두 숫자를
+    // 세로로 붙이면 비교도 쉽다
     ctx.font = `800 ${Math.round(14 * u)}px ${FONT}`
     const bestText = dayLabel(daysOf(best))
     const bw = ctx.measureText(bestText).width + 44 * u
     const bh = 32 * u
-    const bx = w - 14 * u - bw
-    const by = top + 6 * u
+    const bx = 14 * u
+    const by = top + dh + 6 * u
     this.chip(bx, by, bw, bh, COL.target, 3 * u)
     this.star(bx + 18 * u, by + bh / 2, 7 * u)
     ctx.fillStyle = COL.ink
