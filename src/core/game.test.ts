@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, sonicChanceK, sonicInSweet, sonicMarker, sonicPendingReady, sonicSweetCenter, threatGap, threatSpeedAt, update } from './game'
+import { continueRun, continuesLeft, createGame, meters, press, releaseInput, selectTarget, sonicChanceAtPx, sonicInSweet, sonicMarker, sonicPendingReady, sonicSweetCenter, threatGap, threatSpeedAt, update } from './game'
 import { TUNING } from './tuning'
 
 const STEP = 1 / 120
@@ -13,6 +13,20 @@ function grabAnchor(g: ReturnType<typeof createGame>, idx: number): void {
   press(g)
   update(g, STEP)
   expect(g.body.anchor).toEqual({ x: a.x, y: a.y })
+}
+
+/** 그 해(stage)의 찬스 지점 뒤 첫 앵커 인덱스 — 여기를 잡으면 찬스가 터진다 (D-018) */
+function chanceIdx(g: ReturnType<typeof createGame>, stage = 0): number {
+  const at = sonicChanceAtPx(g, stage)
+  g.field.ensure(at + 2000)
+  return g.field.anchors.findIndex((a) => a.x >= at)
+}
+
+/** 찬스 앵커를 잡아 찬스를 터뜨린다 */
+function grabToChance(g: ReturnType<typeof createGame>, stage = 0): number {
+  const idx = chanceIdx(g, stage)
+  grabAnchor(g, idx)
+  return idx
 }
 
 /** 찬스가 터진 뒤 도전 시작 — 히트스톱이 끝날 때까지 기다렸다가 떼고 다시 누른다 (BUILD 24) */
@@ -145,33 +159,28 @@ describe('game', () => {
     expect(continueRun(g)).toBe(false)
   })
 
-  it('소닉 파워: 계절의 k번째 잡기에서만 찬스 — 3바퀴 장착 → 게이지 → 직선 대시 후 일반 비행', () => {
+  it('소닉 파워: 그 해의 찬스 지점 뒤 첫 잡기에서만 찬스 — 3바퀴 장착 → 게이지 → 직선 대시 후 일반 비행', () => {
     threatOff()
     const g = createGame(3)
     press(g)
-    const k = sonicChanceK(g, 0)
-    expect(k).toBeGreaterThanOrEqual(TUNING.sonic.chanceGrabMin)
-    expect(k).toBeLessThanOrEqual(TUNING.sonic.chanceGrabMax)
-    expect(sonicChanceK(g, 0)).toBe(k) // 시드 결정론
-    // 첫 잡기(1번째)에서는 아무리 돌아도 충전되지 않는다
+    const at = sonicChanceAtPx(g, 0)
+    const { chanceFrom, firstChanceTo, chanceStepM } = TUNING.sonic
+    const m = (at - TUNING.startPos.x) / TUNING.pxPerMeter
+    expect(m).toBeGreaterThanOrEqual(chanceFrom * chanceStepM)
+    expect(m).toBeLessThanOrEqual(firstChanceTo * chanceStepM)
+    expect(sonicChanceAtPx(g, 0)).toBe(at) // 시드 결정론
+    // 지점 앞에서는 아무리 돌아도 충전되지 않는다
     for (let i = 0; i < 10; i++) update(g, 1 / 120)
     press(g)
     for (let i = 0; i < 120 * 12; i++) update(g, 1 / 120)
     expect(g.sonic.chance).toBe(false)
     expect(g.sonic.loops).toBe(0)
-    expect(g.sonic.grabsInStage[0]).toBe(1)
-    // 같은 앵커를 다시 잡아도 안 센다
-    const first = g.field.anchors.findIndex((a) => a.x === g.body.anchor!.x)
-    grabAnchor(g, first)
-    expect(g.sonic.grabsInStage[0]).toBe(1)
-    // k-1번째까지 잡는다 → 아직 찬스 없음
-    let next = first + 1
-    while (g.sonic.grabsInStage[0]! < k - 1) {
-      grabAnchor(g, next++)
-      expect(g.sonic.chance).toBe(false)
-    }
-    // k번째 → 멈춤(알림) → 도전 대기 → 떼었다 다시 누르면 충전 시작
-    grabAnchor(g, next)
+    // 지점 바로 앞 앵커까지도 안 터진다
+    const idx = chanceIdx(g)
+    grabAnchor(g, idx - 1)
+    expect(g.sonic.chance).toBe(false)
+    // 지점을 지난 첫 잡기 → 멈춤(알림) → 도전 대기 → 다시 누르면 충전 시작
+    grabAnchor(g, idx)
     expect(g.sonic.chance).toBe(true)
     expect(g.sonic.freezeT).toBeGreaterThan(0)
     expect(g.sonic.pending).toBe(true)
@@ -220,8 +229,7 @@ describe('game', () => {
     threatOff()
     const g = createGame(5)
     press(g)
-    const k = sonicChanceK(g, 0)
-    for (let i = 0; i < k; i++) grabAnchor(g, i)
+    const idx = grabToChance(g)
     expect(g.sonic.chance).toBe(true)
     startChallenge(g)
     let n = 0
@@ -232,8 +240,8 @@ describe('game', () => {
     expect(g.sonic.dashing).toBe(false)
     expect(g.sonic.chance).toBe(false)
     expect(g.sonic.usedStage[0]).toBe(true)
-    grabAnchor(g, k)
-    grabAnchor(g, k + 1)
+    grabAnchor(g, idx + 1)
+    grabAnchor(g, idx + 2)
     expect(g.sonic.chance).toBe(false)
   })
 
@@ -242,8 +250,7 @@ describe('game', () => {
       threatOff()
       const g = createGame(3)
       press(g)
-      const k = sonicChanceK(g, 0)
-      for (let i = 0; i < k; i++) grabAnchor(g, i)
+      grabToChance(g)
       expect(g.sonic.pending).toBe(true)
       expect(sonicPendingReady(g)).toBe(false) // 히트스톱 중
       // 놀라서 손을 뗐다
@@ -276,8 +283,7 @@ describe('game', () => {
       threatOff()
       const g = createGame(3)
       press(g)
-      const k = sonicChanceK(g, 0)
-      for (let i = 0; i < k; i++) grabAnchor(g, i)
+      grabToChance(g)
       startChallenge(g)
       // 반 바퀴쯤에서 놓는다 (한 바퀴 전)
       let n = 0
@@ -305,8 +311,7 @@ describe('game', () => {
       threatOff()
       const g = createGame(3)
       press(g)
-      const k = sonicChanceK(g, 0)
-      for (let i = 0; i < k; i++) grabAnchor(g, i)
+      grabToChance(g)
       startChallenge(g)
       let n = 0
       while (g.sonic.loops < 1 && n++ < 120 * 10) update(g, STEP)
@@ -419,12 +424,11 @@ describe('game', () => {
     it('찬스 잎에 매달려 충전하는 동안은 벽괴물이 물러나 멈춘다 — 3바퀴 회전 중 잡히지 않는다 (BUILD 21)', () => {
       const g = createGame(3)
       press(g)
-      const k = sonicChanceK(g, 0)
-      for (let i = 0; i < k - 1; i++) grabAnchor(g, i)
-      // 벽괴물을 코앞까지 붙여 두고 k번째를 잡는다
-      const a = g.field.anchors[k - 1]!
+      const idx = chanceIdx(g)
+      // 벽괴물을 코앞까지 붙여 두고 찬스 앵커를 잡는다
+      const a = g.field.anchors[idx]!
       g.threatX = a.x - 100 - 30
-      grabAnchor(g, k - 1)
+      grabAnchor(g, idx)
       expect(g.sonic.chance).toBe(true)
       expect(a.x - g.threatX).toBeGreaterThanOrEqual(TUNING.threat.chanceBackPx)
       const backX = g.threatX

@@ -117,8 +117,8 @@ it.skipIf(!RUN)('위협 유무별 봇 생존', () => {
 
 it.skipIf(!RUN)('슈퍼 켠 봇 종단 (세션 길이 기준표)', () => {
   const seeds = [1, 2, 3, 4, 5, 6, 7, 8]
-  const { chanceStepM, chanceGrabMin, chanceGrabMax, dashMeters } = TUNING.sonic
-  console.log(`\n== 슈퍼 켬 (찬스 ${chanceStepM}m마다 k=[${chanceGrabMin},${chanceGrabMax}]번째 잡기, 대시 ${dashMeters}m, 180s, seeds=8) ==`)
+  const { chanceStepM, chanceFrom, chanceTo, dashMeters } = TUNING.sonic
+  console.log(`\n== 슈퍼 켬 (찬스 ${chanceStepM}m마다 구간 ${chanceFrom}~${chanceTo} 지점, 대시 ${dashMeters}m, 180s, seeds=8) ==`)
   for (const th of [20, 25, 30, 35, 45]) {
     const rs = seeds.map((s) => runSuperBot(s, th, 180))
     const dead = rs.filter((r) => r.cause !== 'alive')

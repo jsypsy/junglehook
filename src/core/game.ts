@@ -8,7 +8,7 @@
  *   플레이어가 "지금 누르면 어디에 걸리는지" 항상 볼 수 있어야 죽음이 납득된다
  */
 import { AnchorField } from './anchors'
-import { Rng } from './rng'
+import { Rng, stageSeed } from './rng'
 import type { Body } from './physics'
 import { createBody, grab, pump, reelIn, release, stepBody } from './physics'
 import { TUNING } from './tuning'
@@ -53,11 +53,7 @@ export interface SonicState {
   uses: number
   /** 장착 후 흐른 시간 (s) — 게이지 마커 위치의 근거 */
   gaugeT: number
-  /** 계절 단계별로 지금까지 잡은 서로 다른 앵커 수 — k번째에서 찬스가 터진다 (D-015) */
-  grabsInStage: Record<number, number>
-  /** 마지막으로 잡은 앵커 인덱스 — 같은 앵커 재잡기는 안 센다 */
-  lastGrabIdx: number
-  /** 찬스를 쓴(잡았다 놓은) 계절 단계 */
+  /** 찬스를 쓴(잡았다 놓은) 단계(1년) */
   usedStage: Record<number, true>
   /** 지금 찬스 앵커에 매달려 있다 — 이때만 충전된다 */
   chance: boolean
@@ -70,7 +66,7 @@ export interface SonicState {
 }
 
 export function createSonic(): SonicState {
-  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, grabsInStage: {}, lastGrabIdx: -1, usedStage: {}, chance: false, freezeT: 0, pending: false, sweetCenter: 0.5 }
+  return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, usedStage: {}, chance: false, freezeT: 0, pending: false, sweetCenter: 0.5 }
 }
 
 /** 찬스 단계 번호 — 슈퍼 대시는 이 단계마다 한 번 (BUILD 27: 1년 = 사계절 한 바퀴 1000m) */
@@ -79,13 +75,17 @@ function chanceStageOfX(x: number): number {
 }
 
 /**
- * 이 단계(1년)에서 찬스가 터지는 "몇 번째 잡기"인가 — 시드+단계로 결정되는 랜덤 (D-015).
- * 앵커 위치가 아니라 잡기 순서에 걸려 있어 찬스는 단계마다 반드시 손에 들어온다 (앵커를 k개 이상 잡는 한)
+ * 이 단계(1년)에서 찬스가 열리는 지점 (절대 x, px) — 시드+단계로 결정되는 구간 비율 랜덤 (D-018).
+ * 이 지점을 지나 **처음 잡는 앵커**가 찬스 앵커다. 특정 잎을 지정하지 않으므로 "그 잎이 잡히느냐"가
+ * 운이 되지 않고(B15~22의 실패), 사람마다 다른 잡기 빈도에도 발동 위치가 흔들리지 않는다(B23~27의 한계)
  */
-export function sonicChanceK(g: Game, stage: number): number {
-  const { chanceGrabMin, chanceGrabMax } = TUNING.sonic
-  const r = new Rng((g.seed ^ (stage * 7919 + 13)) >>> 0)
-  return chanceGrabMin + r.int(chanceGrabMax - chanceGrabMin + 1)
+export function sonicChanceAtPx(g: Game, stage: number): number {
+  const { chanceStepM, chanceFrom, chanceTo, firstChanceTo } = TUNING.sonic
+  // stageSeed로 섞는다 — LCG는 첫 출력이 시드에 거의 선형이라 `seed ^ 상수`로는 어느 시드나 같은 지점이 나온다
+  // (2026-08-31 계측: 12개 시드 전부 148m)
+  const r = new Rng(stageSeed(g.seed, stage * 2 + 1))
+  const f = r.range(chanceFrom, stage === 0 ? firstChanceTo : chanceTo)
+  return TUNING.startPos.x + (stage + f) * chanceStepM * TUNING.pxPerMeter
 }
 
 /** 게이지 마커 위치 0~1 — 삼각파로 왕복. t를 주면 그 시각(장착 후 초)의 위치 */
@@ -117,7 +117,7 @@ export function sonicPendingReady(g: Game): boolean {
 /** 이 계절 찬스의 게이지 성공 구간 중심 — 시드+단계 결정론 */
 export function sonicSweetCenter(g: Game, stage: number): number {
   const { sweetFrom, sweetTo } = TUNING.sonic
-  const r = new Rng((g.seed ^ (stage * 7919 + 29)) >>> 0)
+  const r = new Rng(stageSeed(g.seed, stage * 2 + 2))
   return r.range(sweetFrom, sweetTo)
 }
 
@@ -348,14 +348,9 @@ export function update(g: Game, dt: number): void {
     if (!hadAnchor) {
       s.spin = 0
       s.loops = 0
-      // 이 단계(1년)에서 k번째로 잡은 (서로 다른) 앵커면 찬스 — 알림 + 충전 허용 (D-015, BUILD 27)
-      const idx = g.field.anchors.findIndex((a) => a.x === g.body.anchor!.x && a.y === g.body.anchor!.y)
+      // 이 단계(1년)의 찬스 지점을 지나 처음 잡는 앵커면 찬스 — 알림 + 충전 허용 (D-018)
       const stage = chanceStageOfX(g.body.anchor.x)
-      if (idx !== s.lastGrabIdx) {
-        s.grabsInStage[stage] = (s.grabsInStage[stage] ?? 0) + 1
-        s.lastGrabIdx = idx
-      }
-      s.chance = !s.usedStage[stage] && s.grabsInStage[stage] === sonicChanceK(g, stage)
+      s.chance = !s.usedStage[stage] && g.body.anchor.x >= sonicChanceAtPx(g, stage)
       if (s.chance) {
         s.freezeT = TUNING.sonic.freezeSec
         s.pending = true

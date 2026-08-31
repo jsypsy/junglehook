@@ -248,3 +248,11 @@
   ③ 폰에 이미 저장된 `hide: true`를 한 번 버리려고 키를 `jgh.v1.super-manual2`로 올림
 - 테스트 54개 통과. BUILD 27 배포
 
+## 2026-08-31 — BUILD 27 (2) 찬스 발동을 그 해 랜덤 지점으로 (D-018)
+
+- 사용자 "매년 시작이 아니라 1년 중 랜덤". k번째 잡기 → 구간 비율 랜덤 지점 뒤 첫 잡기(`sonicChanceAtPx`).
+  `sonic.chanceGrabMin/Max` 제거, `chanceFrom/chanceTo/firstChanceTo` 신설. `SonicState.grabsInStage`·`lastGrabIdx` 제거
+- **LCG 시드 파생 버그**: `seed ^ 상수`로는 첫 출력이 거의 같아 찬스 지점이 모든 시드에서 148m, 게이지 중심도
+  사실상 고정이었다 → `stageSeed()`로 교체. 1년차 185~280m, 이후 121~834m로 분산 확인
+- 테스트: `chanceIdx`/`grabToChance` 헬퍼로 재작성, 54개 통과. 봇 재계측 세션 102~118초·대시 1.9~2.0회
+
