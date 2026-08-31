@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif; }
+    a { color: #b45309; } a:hover { color: #92400e; }
+    .sheet { width: 760px; box-sizing: border-box; padding: 24px 26px 30px; background: #a9e2ff; color: #1f3a2a; }
+    h2 { margin: 0 0 4px; font-size: 19px; font-weight: 900; letter-spacing: -0.3px; }
+    .sub { margin: 0 0 20px; font-size: 13px; font-weight: 600; opacity: 0.72; }
+    .row { display: flex; align-items: center; gap: 20px; padding: 12px 0; border-top: 2px solid rgba(31,58,42,0.18); }
+    .meta { width: 176px; flex-shrink: 0; }
+    .name { font-size: 14px; font-weight: 900; margin-bottom: 3px; }
+    .why { font-size: 12px; font-weight: 600; line-height: 1.45; opacity: 0.75; }
+    .real { width: 150px; flex-shrink: 0; display: flex; justify-content: center; }
+    .zoom { flex-grow: 1; display: flex; justify-content: flex-start; }
+  </style>
+</helmet>
+<div class="sheet">
+  <h2>대시 화염 후보</h2>
+  <p class="sub">왼쪽이 게임 실제 크기(캐릭터 지름 44px), 오른쪽은 2.4배 확대. 로켓 그림처럼 <b>뿌리에서 넓어지다 둥근 혹으로 뭉뚝하게</b> 끝나고, 혹 크기는 위아래가 제각각입니다.</p>
+
+  <sc-for list="{{flames}}" as="f" hint-placeholder-count="5">
+    <div class="row">
+      <div class="meta">
+        <div class="name">{{f.name}}</div>
+        <div class="why">{{f.why}}</div>
+      </div>
+      <div class="real">
+        <svg width="130" height="96" viewBox="0 0 130 96">
+          <g transform="translate(1,-12)">
+            <path d="{{f.outer}}" fill="#e6392b" stroke="#1f3a2a" stroke-width="3" stroke-linejoin="round" />
+            <path d="{{f.mid}}" fill="#ff7f3f" />
+            <path d="{{f.core}}" fill="#ffcc33" />
+            <circle cx="100" cy="60" r="22" fill="#fff1b0" stroke="#1f3a2a" stroke-width="3" />
+            <g fill="#1f3a2a">
+              <rect x="89" y="55" width="9" height="5" rx="1.5" />
+              <rect x="101" y="55" width="9" height="5" rx="1.5" />
+              <rect x="98" y="56" width="3" height="2" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="zoom">
+        <svg width="312" height="230" viewBox="0 0 130 96">
+          <g transform="translate(1,-12)">
+            <path d="{{f.outer}}" fill="#e6392b" stroke="#1f3a2a" stroke-width="3" stroke-linejoin="round" />
+            <path d="{{f.mid}}" fill="#ff7f3f" />
+            <path d="{{f.core}}" fill="#ffcc33" />
+            <circle cx="100" cy="60" r="22" fill="#fff1b0" stroke="#1f3a2a" stroke-width="3" />
+            <g fill="#1f3a2a">
+              <rect x="89" y="55" width="9" height="5" rx="1.5" />
+              <rect x="101" y="55" width="9" height="5" rx="1.5" />
+              <rect x="98" y="56" width="3" height="2" />
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      flames: [
+        {
+          name: '1. 혹진 구름형',
+          why: '로켓 그림에 가장 가깝다. 둥근 혹 여섯 개가 크기를 달리하며 뒤로 갈수록 넓어진다.',
+          outer: 'M78 47 C68 43 64 36 55 39 C48 41 46 33 37 38 C30 42 24 34 18 42 C12 49 4 47 6 57 C1 63 6 72 14 71 C18 80 29 76 35 81 C43 86 47 77 56 82 C64 86 70 79 78 76 Z',
+          mid: 'M78 50 C70 47 66 41 59 44 C53 46 51 39 44 43 C38 46 33 40 28 46 C23 52 17 51 19 59 C15 63 19 70 25 69 C28 76 37 73 42 77 C48 81 51 74 58 78 C65 81 70 76 78 74 Z',
+          core: 'M77 55 C68 52 62 51 54 54 C47 56 42 53 37 58 C43 63 48 61 55 64 C62 67 69 66 77 64 Z',
+        },
+        {
+          name: '2. 혹 + 뾰족 섞기',
+          why: '둥근 혹 사이에 뾰족한 혀가 끼어 불이 더 사납게 읽힌다.',
+          outer: 'M78 47 C69 44 66 35 57 38 L48 29 L45 41 C37 44 30 34 25 43 L11 39 L14 52 C5 56 5 68 15 69 L9 79 L23 74 C28 82 38 76 43 83 L50 73 L58 82 C66 84 71 79 78 76 Z',
+          mid: 'M78 50 C70 47 67 40 60 43 L53 36 L51 45 C45 47 39 40 35 47 L25 44 L27 53 C20 56 20 66 28 67 L24 74 L34 70 C38 77 45 72 49 78 L54 70 L60 77 C66 79 71 75 78 74 Z',
+          core: 'M77 55 C69 52 63 50 56 54 L50 49 L48 56 C43 57 40 55 36 58 C42 62 46 60 52 63 C60 67 69 66 77 64 Z',
+        },
+        {
+          name: '3. 짧고 아주 넓게',
+          why: '길이를 더 줄이고 폭을 키운 안. 대시 중 화면을 덜 가린다.',
+          outer: 'M78 44 C70 40 66 31 56 36 C48 39 42 30 34 37 C28 43 21 40 21 50 C14 55 15 69 25 70 C29 79 39 76 46 82 C54 87 58 77 66 81 C72 83 76 80 78 78 Z',
+          mid: 'M78 48 C71 45 67 38 59 41 C52 44 47 37 41 43 C36 47 31 45 31 53 C26 57 27 66 34 68 C37 75 44 72 49 77 C55 81 58 74 64 77 C69 79 75 77 78 76 Z',
+          core: 'M77 55 C69 52 64 50 57 53 C50 56 45 53 40 57 C46 62 51 60 57 63 C64 66 70 65 77 64 Z',
+        },
+        {
+          name: '4. 세 겹 모두 울퉁불퉁',
+          why: '안쪽 두 겹도 혹을 져서, 겹마다 다른 리듬이 겹쳐 보인다.',
+          outer: 'M78 47 C68 43 64 36 55 39 C48 41 46 33 37 38 C30 42 24 34 18 42 C12 49 4 47 6 57 C1 63 6 72 14 71 C18 80 29 76 35 81 C43 86 47 77 56 82 C64 86 70 79 78 76 Z',
+          mid: 'M78 50 C71 48 68 42 61 45 C55 47 52 40 46 44 C41 47 36 41 31 47 C26 53 20 52 22 59 C18 63 22 70 27 69 C30 76 38 73 43 77 C49 81 52 74 59 78 C66 81 71 76 78 74 Z',
+          core: 'M77 54 C70 52 67 48 61 51 C56 53 53 48 48 52 C44 55 40 52 37 57 C41 62 45 59 49 63 C54 67 57 62 62 65 C68 68 72 65 77 64 Z',
+        },
+        {
+          name: '5. 위아래 비대칭',
+          why: '위는 큰 혹 둘, 아래는 잔 혹 넷. 대칭이 완전히 깨져 가장 손그림처럼 읽힌다.',
+          outer: 'M78 46 C64 40 58 28 44 34 C33 39 22 30 12 42 C4 51 2 58 10 64 C16 68 14 73 20 74 C26 75 26 80 32 79 C38 78 40 83 46 81 C52 79 56 85 62 81 C68 77 72 79 78 76 Z',
+          mid: 'M78 49 C66 44 61 35 49 40 C40 44 31 37 23 47 C17 54 16 59 22 64 C27 67 25 71 30 72 C35 73 35 76 40 76 C45 76 46 80 51 78 C56 76 59 81 64 78 C69 75 73 76 78 74 Z',
+          core: 'M77 55 C67 51 62 47 53 51 C46 54 40 51 34 57 C41 62 45 60 51 63 C58 67 69 66 77 64 Z',
+        },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

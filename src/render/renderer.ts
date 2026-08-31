@@ -664,7 +664,10 @@ export class Renderer {
 
     // 태양 — 계절 캐릭터: 봄 미소 / 여름 크고 이글거리며 화난 얼굴 / 가을 나른한 반눈 / 겨울 창백하게 눈 감음
     const sunX = w - 75 * u
-    const sunY = topInset + 96 * u
+    // 76u — 위 여백을 줄이려고 20u 올렸다 (BUILD 31, 사용자 "HUD랑 태양을 좀 더 위로"). 여름 광선 끝(중심에서
+    // R+6+30 = 92u)이 화면 위로 조금 잘리지만 "모서리에 걸친 태양"으로 읽힌다. 토스 네이티브 헤더는 웹뷰 밖이고
+    // 좌표가 전부 topInset 기준이라 겹치지 않는다
+    const sunY = topInset + 76 * u
     const weightOf = (season: Season) =>
       Math.max(st.season === season ? st.blend : 0, st.prev === season && st.blend < 1 ? 1 - st.blend : 0)
     const summer = weightOf('summer')
@@ -1711,10 +1714,10 @@ export class Renderer {
 
   private drawHud(g: Game, best: number, w: number, h: number, u: number, topInset: number, preset: string | null): void {
     const ctx = this.ctx
-    // 위 여백 30u — 태양은 계절마다 R이 28~56u로 변해 가장자리가 고정 기준이 못 되고, 중심(topInset+96u)만
-    // 고정이다. 최고기록 칩의 중심(top + 44 + 6 + 16)을 거기에 맞춘다: 30 + 66 = 96u (BUILD 31,
-    // 사용자 "점수 영역과 태양 영역의 줄이 어긋나 보인다")
-    const top = topInset + 30 * u
+    // 위 여백 35u — **HUD 두 줄 블록의 세로 중앙을 태양 중심에 맞춘다** (BUILD 31, 사용자 지정).
+    // 블록은 거리 칩 44u + 간격 6u + 최고기록 칩 32u = 82u라 중심이 top+41u이고, 태양 중심은 topInset+76u →
+    // top = 76-41 = 35u. 둘 중 하나만 옮기면 이 관계가 깨진다
+    const top = topInset + 35 * u
     ctx.textBaseline = 'alphabetic'
     // 거리 칩 (왼쪽 위)
     ctx.font = `900 ${Math.round(26 * u)}px ${FONT}`
@@ -1914,7 +1917,8 @@ export class Renderer {
     this.drawFinger(fx, fy, u, pressed)
 
     // 단계 문구 — 노란 칩
-    const copy = ['꾹 누르면 매달리고', '떼면 날아가요', '다시 누르면 다음 앵커에!'][stage]!
+    // "앵커"는 일반 사용자가 못 알아듣는다 (사용자 지적) — 화면에 실제로 보이는 것은 덩굴 끝의 잎이다
+    const copy = ['꾹 누르면 매달리고', '떼면 날아가요', '다시 누르면 다음 잎으로!'][stage]!
     this.pill(copy, d.x + d.w / 2, d.y + d.h - 74 * u, `800 ${Math.round(14 * u)}px ${FONT}`, COL.target, COL.ink, 12 * u, 0, u, true)
     ctx.restore()
   }

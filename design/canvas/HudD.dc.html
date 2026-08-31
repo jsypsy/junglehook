@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif; }
+    a { color: #b45309; } a:hover { color: #92400e; }
+    .stage { position: relative; width: 393px; height: 300px; overflow: hidden; background: linear-gradient(#3fb0ea, #a9e2ff); }
+    .chip { position: absolute; display: flex; align-items: center; box-sizing: border-box; border: 2px solid #1f3a2a; border-radius: 999px; box-shadow: 3px 3px 0 #1f3a2a; color: #1f3a2a; }
+    .now { height: 44px; padding: 0 15px; background: #ffffff; font-size: 26px; font-weight: 900; }
+    .best { height: 32px; padding: 0 14px; background: #ffcc33; font-size: 14px; font-weight: 800; gap: 6px; }
+    .label { position: absolute; left: 0; bottom: 0; width: 100%; box-sizing: border-box; padding: 7px 12px; background: #1f3a2a; color: #eaf7d6; font-size: 12px; font-weight: 700; letter-spacing: -0.2px; }
+  </style>
+</helmet>
+<div class="stage">
+  <!-- 배경: 구름 · 덩굴 -->
+  <svg width="393" height="300" style="position:absolute; inset:0">
+    <g stroke="#1f3a2a" stroke-width="3" fill="none">
+      <path d="M96 0 C 100 40, 88 70, 96 104" />
+      <path d="M232 0 C 228 34, 238 58, 232 88" />
+    </g>
+    <g fill="#2c9c4b" stroke="#1f3a2a" stroke-width="2.5">
+      <ellipse cx="96" cy="112" rx="11" ry="6" transform="rotate(-18 96 112)" />
+      <ellipse cx="232" cy="96" rx="11" ry="6" transform="rotate(-18 232 96)" />
+    </g>
+    <g fill="#ffffff" stroke="#1f3a2a" stroke-width="3">
+      <path d="M52 244 a24 24 0 0 1 34 -14 a20 20 0 0 1 32 8 a15 15 0 0 1 -2 30 h-58 a17 17 0 0 1 -6 -24 z" />
+    </g>
+    <!-- 태양: 여름(가장 큰 상태) -->
+    <g transform="translate(318,204)">
+      <g fill="#ffcc1f" stroke="#1f3a2a" stroke-width="3" stroke-linejoin="round">
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(0)" />
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(45)" />
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(90)" />
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(135)" />
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(180)" />
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(225)" />
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(270)" />
+        <path d="M0 -78 l10 22 l-20 0 z" transform="rotate(315)" />
+      </g>
+      <circle r="56" fill="#ffcc1f" stroke="#1f3a2a" stroke-width="3" />
+      <g fill="#1f3a2a">
+        <path d="M-26 -12 l20 -8 l2 6 l-20 8 z" />
+        <path d="M26 -12 l-20 -8 l-2 6 l20 8 z" />
+        <path d="M-16 20 q16 -12 32 0 q-16 -6 -32 0 z" />
+      </g>
+      <!-- 겨울(가장 작은 상태) 크기 참고 -->
+      <circle r="28" fill="none" stroke="#1f3a2a" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.5" />
+    </g>
+  </svg>
+  <!-- HUD -->
+  <div class="chip now" style="left: 50%; transform: translateX(-50%); top: 26px;">321일</div>
+  <div class="chip best" style="left: 50%; transform: translateX(-50%); top: 76px;">
+    <svg width="13" height="13" viewBox="0 0 12 12" fill="#1f3a2a"><path d="M6 0.5 L7.6 4.1 L11.5 4.5 L8.6 7.1 L9.4 11 L6 9 L2.6 11 L3.4 7.1 L0.5 4.5 L4.4 4.1 Z" /></svg>
+    226일
+  </div>
+  <div class="label">D. 칩을 가운데로 — 좌우 대칭축이 달라 태양과 비교되지 않는다</div>
+</div>
+</x-dc>
+</body>
+</html>
