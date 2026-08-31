@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>계절 진행 검수 — 잎 밀도</title>
+    <!--
+      계절 진행 검수 하네스. `npm run dev -- --host` 뒤 폰에서 http://<맥 LAN 주소>:5173/tools/seasons.html
+
+      가을·겨울 나무를 보려면 500m 넘게 살아남아야 해서 플레이로는 확인이 사실상 불가능했다 (2026-08-31).
+      게임을 숨겨서 띄우고 개발 훅(`__jgh`)으로 원하는 거리마다 순간이동시킨 뒤,
+      그때의 화면을 한 장씩 오려 이어 붙인다. 잎이 어떻게 지는지 한눈에 본다.
+
+      순간이동 함정 (HANDOFF): ① 매달린 몸은 anchor를 풀고 옮긴다 ② 찬스가 터지면 세상이 멈추므로
+      `tuning.sonic.chanceStepM`을 크게 ③ 벽괴물이 코앞이면 어둠이 깔리므로 뒤로 밀어둔다
+    -->
+    <style>
+      body {
+        margin: 0;
+        background: #14161c;
+        color: #99a0b5;
+        font: 13px/1.6 ui-monospace, monospace;
+        padding: 10px 10px 30px;
+      }
+      h1 { font-size: 14px; color: #cfd6e6; margin: 4px 0 10px; }
+      .row { margin-bottom: 14px; }
+      .row b { color: #cfd6e6; }
+      canvas.strip { width: 100%; height: auto; display: block; background: #000; border: 1px solid #333; }
+      button {
+        font: 13px ui-monospace, monospace; color: #cfd6e6; background: #262b38;
+        border: 1px solid #3a4152; border-radius: 8px; padding: 7px 12px; margin: 0 6px 6px 0;
+      }
+      #stage { position: fixed; left: -9999px; top: 0; width: 393px; height: 749px; border: 0; }
+    </style>
+  </head>
+  <body>
+    <h1>계절 진행 검수 — 잎이 어떻게 지는가</h1>
+    <div>
+      <button data-range="0,1000">1년 전체 (0~1000m)</button>
+      <button data-range="400,800">여름 끝~겨울 초 (400~800m)</button>
+      <button data-range="500,760">가을만 (500~760m)</button>
+      <button data-range="750,1000">겨울만 (750~1000m)</button>
+      <button data-range="1000,2000">2년차 (1000~2000m)</button>
+    </div>
+    <div id="out"></div>
+    <iframe id="stage" src="/" title="게임"></iframe>
+    <script>
+      const SEASON = (m) => ['봄', '여름', '가을', '겨울'][Math.floor(m / 250) % 4]
+      const stage = document.getElementById('stage')
+      const out = document.getElementById('out')
+
+      function shot(range) {
+        const [from, to] = range.split(',').map(Number)
+        const w = stage.contentWindow
+        const h = w.__jgh
+        if (!h) {
+          out.textContent = '개발 훅(__jgh)이 없다 — npm run dev 로 띄운 서버인지 확인'
+          return
+        }
+        const g = h.game
+        h.tuning.threat.enabled = false
+        h.tuning.sonic.chanceStepM = 1e9 // 순간이동 중 찬스가 터져 세상이 멈추는 것 방지
+        const cv = stage.contentDocument.querySelector('canvas')
+        const N = 8
+        const CW = 300
+        const CH = 560
+        const strip = document.createElement('canvas')
+        strip.className = 'strip'
+        strip.width = CW * N
+        strip.height = CH
+        const ctx = strip.getContext('2d')
+        for (let i = 0; i < N; i++) {
+          const m = Math.round(from + ((to - from) * i) / (N - 1))
+          g.phase = 'playing'
+          g.cause = null
+          g.body.anchor = null
+          g.holding = false
+          g.body.pos = { x: 60 + m * 50, y: 260 }
+          g.body.vel = { x: 380, y: -120 }
+          g.threatX = g.body.pos.x - 100000
+          for (let k = 0; k < 20; k++) {
+            g.phase = 'playing'
+            h.stepOnce(1 / 120)
+          }
+          // 화면 위 28%(HUD·하늘)와 아래 10%는 잘라내고 나무 층만 본다
+          ctx.drawImage(cv, 0, cv.height * 0.28, cv.width, cv.height * 0.62, i * CW, 0, CW, CH)
+          ctx.fillStyle = 'rgba(0,0,0,0.6)'
+          ctx.fillRect(i * CW, 0, CW, 44)
+          ctx.fillStyle = '#fff'
+          ctx.font = 'bold 26px ui-monospace, monospace'
+          ctx.fillText(`${m}m · ${SEASON(m)}`, i * CW + 12, 32)
+        }
+        const row = document.createElement('div')
+        row.className = 'row'
+        const cap = document.createElement('div')
+        cap.innerHTML = `<b>${from}~${to}m</b> — 왼쪽에서 오른쪽으로`
+        row.append(cap, strip)
+        out.prepend(row)
+      }
+
+      for (const b of document.querySelectorAll('button[data-range]')) {
+        b.addEventListener('click', () => shot(b.dataset.range))
+      }
+      stage.addEventListener('load', () => setTimeout(() => shot('400,800'), 600))
+    </script>
+  </body>
+</html>

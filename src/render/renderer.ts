@@ -88,7 +88,8 @@ const SEASON_PALETTE: Record<Season, Palette> = {
 /**
  * 잎 밀도 (design/trees) — **계절 안에서도 변한다** (BUILD 31, 사용자 "가을부터 차츰 줄고 겨울 오면 훅 준다").
  * 계절마다 상수였을 때는 가을 250m 내내 0.75로 붙박이라 "잎이 지고 있다"가 안 읽혔다.
- * 봄 돋아남(0.30→0.68) → 여름 가득(1) → 가을 차츰 짐(0.85→0.28) → 겨울 초입 40%에 남은 잎이 다 떨어진다
+ * 봄 돋아남(0.30→0.68) → 여름 가득(1) → 가을 차츰 짐(0.90→0.15) → 겨울 초입 30%에 남은 잎이 다 떨어진다.
+ * 가을 끝을 0.28로 뒀을 때는 97% 지점에서도 아직 무성해 보여 겨울에서 뚝 떨어졌다 (검수 tools/seasons.html)
  */
 function leafDensityAt(season: Season, p: number): number {
   switch (season) {
@@ -97,13 +98,13 @@ function leafDensityAt(season: Season, p: number): number {
     case 'summer':
       return 1
     case 'autumn':
-      return 0.85 - 0.57 * p
+      return 0.9 - 0.75 * p
     default:
-      return Math.max(0, 0.28 * (1 - p / 0.4))
+      return Math.max(0, 0.15 * (1 - p / 0.3))
   }
 }
 function leafOf(st: SeasonState): number {
-  // 경계 보간: 이전 계절은 그 계절의 **끝** 밀도로 친다 (가을 끝 0.28 = 겨울 시작 0.28이라 이어진다)
+  // 경계 보간: 이전 계절은 그 계절의 **끝** 밀도로 친다 (가을 끝 0.15 = 겨울 시작 0.15라 이어진다)
   const a = leafDensityAt(st.prev, 1)
   const b = leafDensityAt(st.season, st.progress)
   return a + (b - a) * st.blend
