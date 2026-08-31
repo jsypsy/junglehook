@@ -120,13 +120,19 @@ export function drawTree(
   const sk = skeleton(seed, far ? 3 : 4)
   const X = (x: number) => cx + x * height
   const Y = (y: number) => gy + y * height
-  // 잎덩어리 후보 — 밀도 0.2 아래면 없음. 봄(0.6 미만)은 끝가지 1/3이 잎 없이 드러난다
+  // 잎덩어리 후보 — 밀도가 낮아지면 **개수가 준다**. 예전엔 반지름만 줄이고 개수는 그대로여서, 가을 내내
+  // "조금 작아진 잎"이다가 0.2 밑에서 통째로 사라져 "겨울 되자마자 훅" 없어졌다 (사용자, BUILD 31).
+  // 마디마다 시드로 고정된 문턱을 두고 밀도가 그 아래로 내려가면 그 잎이 진다 — 가지가 하나씩 드러난다.
+  // 안쪽(굵은) 마디의 문턱을 낮게 잡아 바깥 잔가지 잎부터 떨어지게 한다
   const lobes: Array<{ x: number; y: number; r: number }> = []
-  if (leaf > 0.2) {
-    const scale = 0.35 + 0.65 * leaf
-    sk.nodes.forEach((n, i) => {
+  if (leaf > 0.02) {
+    const scale = 0.62 + 0.38 * leaf // 남은 덩어리는 크게 — 개수로 표현하므로 반지름은 덜 줄인다
+    const lr = new Rng((seed ^ 0x9e3779b9) >>> 0)
+    sk.nodes.forEach((n) => {
       if (n.d === sk.depth) return // 줄기 꼭대기 마디는 위 마디들이 덮는다
-      if (leaf < 0.6 && n.d === 0 && i % 3 === 0) return
+      const inner = 1 - Math.min(3, n.d) / 3 // 0(잔가지) ~ 1(굵은 가지)
+      const th = lr.next() * (0.95 - 0.45 * inner)
+      if (leaf <= th) return
       const base = LOBE_R[Math.min(3, n.d)]!
       lobes.push({ x: X(n.x), y: Y(n.y), r: base * height * scale })
     })

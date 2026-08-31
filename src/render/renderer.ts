@@ -85,11 +85,27 @@ const SEASON_PALETTE: Record<Season, Palette> = {
   // 창백한 해, 눈 덮인 흰 언덕, 갈색 가지, 상록 양치식물
   winter: { player: '#e4f1fb', playerHi: '#ffffff', skyTop: '#a6bdd6', skyBottom: '#e3ebf3', sun: '#f6efd8', glow: '#ffffff', cloud: '#c6d3e0', forestFar: '#eaf1f6', forestMid: '#a5c2d6', forestNear: '#6b93b0', leaf: '#3f6f5e', vine: '#8aa3b3', trunk: '#7a5a44' },
 }
-/** 잎 밀도 (design/trees): 겨울 앙상한 가지만 → 봄 연둣빛 → 가을 → 여름 덩어리가 가지를 덮는다 */
-const LEAF_DENSITY: Record<Season, number> = { spring: 0.45, summer: 1, autumn: 0.75, winter: 0 }
+/**
+ * 잎 밀도 (design/trees) — **계절 안에서도 변한다** (BUILD 31, 사용자 "가을부터 차츰 줄고 겨울 오면 훅 준다").
+ * 계절마다 상수였을 때는 가을 250m 내내 0.75로 붙박이라 "잎이 지고 있다"가 안 읽혔다.
+ * 봄 돋아남(0.30→0.68) → 여름 가득(1) → 가을 차츰 짐(0.85→0.28) → 겨울 초입 40%에 남은 잎이 다 떨어진다
+ */
+function leafDensityAt(season: Season, p: number): number {
+  switch (season) {
+    case 'spring':
+      return 0.3 + 0.38 * p
+    case 'summer':
+      return 1
+    case 'autumn':
+      return 0.85 - 0.57 * p
+    default:
+      return Math.max(0, 0.28 * (1 - p / 0.4))
+  }
+}
 function leafOf(st: SeasonState): number {
-  const a = LEAF_DENSITY[st.prev]
-  const b = LEAF_DENSITY[st.season]
+  // 경계 보간: 이전 계절은 그 계절의 **끝** 밀도로 친다 (가을 끝 0.28 = 겨울 시작 0.28이라 이어진다)
+  const a = leafDensityAt(st.prev, 1)
+  const b = leafDensityAt(st.season, st.progress)
   return a + (b - a) * st.blend
 }
 
@@ -722,7 +738,8 @@ export class Renderer {
     // 스프라이트 캐시 키에 색이 들어가므로 경계 보간(40m)은 0.1 단위로 양자화 — 전환 한 번에 재생성 11회
     const stQ = { ...st, blend: Math.round(st.blend * 10) / 10 }
     const palT = paletteFor(stQ)
-    const leaf = Math.round(leafOf(stQ) * 50) / 50
+    // 밀도가 계절 내내 변하므로 스프라이트 재생성이 잦아지지 않게 0.05 단위로 (가을 한 구간에 12번 남짓)
+    const leaf = Math.round(leafOf(stQ) * 20) / 20
     const colors = { ink: COL.ink, trunk: palT.trunk, dark: palT.forestNear, base: palT.forestMid, hi: palT.forestFar }
     this.drawTreeLayer(cam, w, h, u, 0.3, 0.76, 620, [
       { x: 30, h: 150, seed: 101 }, { x: 180, h: 175, seed: 102 }, { x: 320, h: 140, seed: 103 }, { x: 470, h: 165, seed: 104 },
