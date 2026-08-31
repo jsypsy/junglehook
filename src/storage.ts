@@ -16,7 +16,8 @@ export const BEST_KEY = `${NS}.best`
 export const SAVE_KEY = `${NS}.save`
 const MUTED_KEY = `${NS}.muted`
 const TUTORIAL_KEY = `${NS}.tutorial-done`
-const SUPER_MANUAL_KEY = `${NS}.super-manual`
+// v2: BUILD 27 — 옛 키에 저장된 hide=true(오조작으로 켜졌을 수 있다)를 한 번 버린다
+const SUPER_MANUAL_KEY = `${NS}.super-manual2`
 
 function read(key: string): string | null {
   try {
@@ -108,7 +109,9 @@ export interface SuperManual {
 
 export function loadSuperManual(): SuperManual {
   const raw = read(SUPER_MANUAL_KEY)
-  if (!raw) return { shown: 0, hide: !canPersist() } // 저장 안 되는 환경이면 매번 뜨는 것보다 안 보이는 쪽
+  // 저장이 안 되는 환경에서도 **보여준다** — 카드는 슈퍼의 유일한 설명이라, 조용히 영원히 사라지는 쪽이
+  // "다시 안 보기를 누르기 전까진 항상"(BUILD 26)이라는 의도와 정반대다
+  if (!raw) return { shown: 0, hide: false }
   try {
     const v = JSON.parse(raw) as Partial<SuperManual>
     return { shown: Number(v.shown) || 0, hide: v.hide === true }

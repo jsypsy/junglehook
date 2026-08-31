@@ -460,7 +460,8 @@ export class Renderer {
     ctx.restore()
     // "다시 안 보기" 체크
     const bx = cx - 62 * u
-    const by = cardY + 282 * u
+    // 카드 맨 아래 — 주 액션 문구(cardY+250u)와 겹치면 도전하려던 탭이 "다시 안 보기"를 켠다 (BUILD 27)
+    const by = cardY + 300 * u
     const box = 20 * u
     ctx.beginPath()
     this.roundRect(bx, by, box, box, 5 * u)
@@ -485,7 +486,7 @@ export class Renderer {
     ctx.fillText('다시 안 보기', bx + box + 10 * u, by + 15 * u)
     ctx.restore()
     // 히트 영역은 넉넉히 (44px 규칙)
-    this.superHideBox = { x: bx - 12 * u, y: by - 12 * u, w: 150 * u, h: 44 * u }
+    this.superHideBox = { x: bx - 10 * u, y: by - 8 * u, w: 142 * u, h: 38 * u }
   }
 
   /** 슈퍼 매뉴얼 데모: 누른 채 3바퀴 → 게이지 노란 구간에서 떼기 → 대시. 4.6초 루프 */

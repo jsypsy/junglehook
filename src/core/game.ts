@@ -73,14 +73,14 @@ export function createSonic(): SonicState {
   return { spin: 0, loops: 0, armed: false, dashing: false, dashLeftPx: 0, uses: 0, gaugeT: 0, grabsInStage: {}, lastGrabIdx: -1, usedStage: {}, chance: false, freezeT: 0, pending: false, sweetCenter: 0.5 }
 }
 
-/** 계절 단계 번호 (거리 기준, season.stepM) */
-function stageOfX(x: number): number {
-  return Math.floor(Math.max(0, x - TUNING.startPos.x) / (TUNING.season.stepM * TUNING.pxPerMeter))
+/** 찬스 단계 번호 — 슈퍼 대시는 이 단계마다 한 번 (BUILD 27: 1년 = 사계절 한 바퀴 1000m) */
+function chanceStageOfX(x: number): number {
+  return Math.floor(Math.max(0, x - TUNING.startPos.x) / (TUNING.sonic.chanceStepM * TUNING.pxPerMeter))
 }
 
 /**
- * 이 계절 단계에서 찬스가 터지는 "몇 번째 잡기"인가 — 시드+단계로 결정되는 랜덤 (D-015).
- * 앵커 위치가 아니라 잡기 순서에 걸려 있어 찬스는 계절마다 반드시 손에 들어온다 (앵커를 k개 이상 잡는 한)
+ * 이 단계(1년)에서 찬스가 터지는 "몇 번째 잡기"인가 — 시드+단계로 결정되는 랜덤 (D-015).
+ * 앵커 위치가 아니라 잡기 순서에 걸려 있어 찬스는 단계마다 반드시 손에 들어온다 (앵커를 k개 이상 잡는 한)
  */
 export function sonicChanceK(g: Game, stage: number): number {
   const { chanceGrabMin, chanceGrabMax } = TUNING.sonic
@@ -267,8 +267,8 @@ export function releaseInput(g: Game): void {
     return
   }
   if (g.body.anchor && s.chance) {
-    // 찬스 앵커를 놓는 순간 이 계절의 찬스는 끝 (성공이든 실패든)
-    s.usedStage[stageOfX(g.body.anchor.x)] = true
+    // 찬스 앵커를 놓는 순간 이 단계(1년)의 찬스는 끝 (성공이든 실패든)
+    s.usedStage[chanceStageOfX(g.body.anchor.x)] = true
     s.chance = false
   }
   if (g.body.anchor && s.armed) {
@@ -348,9 +348,9 @@ export function update(g: Game, dt: number): void {
     if (!hadAnchor) {
       s.spin = 0
       s.loops = 0
-      // 이 계절에서 k번째로 잡은 (서로 다른) 앵커면 찬스 — 알림 + 충전 허용 (D-015)
+      // 이 단계(1년)에서 k번째로 잡은 (서로 다른) 앵커면 찬스 — 알림 + 충전 허용 (D-015, BUILD 27)
       const idx = g.field.anchors.findIndex((a) => a.x === g.body.anchor!.x && a.y === g.body.anchor!.y)
-      const stage = stageOfX(g.body.anchor.x)
+      const stage = chanceStageOfX(g.body.anchor.x)
       if (idx !== s.lastGrabIdx) {
         s.grabsInStage[stage] = (s.grabsInStage[stage] ?? 0) + 1
         s.lastGrabIdx = idx
