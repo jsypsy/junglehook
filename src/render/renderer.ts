@@ -1179,25 +1179,48 @@ export class Renderer {
       ctx.fill()
     }
     ctx.globalAlpha = 1
-    // 로켓 불꽃 — 뒤로 뻗는 삼각 불꽃 두 겹, 깜빡임
-    const flick = 0.8 + 0.2 * Math.sin(now / 35)
-    const flame = (len: number, half: number, fill: string) => {
+    // 로켓 불꽃 — 큰 화염 하나 + 작은 화염 둘. 셋이 각자 위상으로 길이·꼬리가 따로 논다 (BUILD 28,
+    // 사용자 "세모 꼬깔 하나라 미비하다"). 같은 꼭짓점에서 겹친 삼각형 셋은 아무리 색을 나눠도 한 덩이로 읽힌다
+    // 큰 화염이 먼저(뒤), 작은 둘이 위 — 반대로 그리면 작은 화염이 큰 화염 아가리에 삼켜져 하나로 보인다
+    this.drawPlume(x - 14 * s, y, 120 * s, 19 * s, 0, 0, s, now)
+    this.drawPlume(x - 10 * s, y + 11 * s, 74 * s, 11 * s, 0.62, 2.1, s, now)
+    this.drawPlume(x - 10 * s, y - 11 * s, 66 * s, 10 * s, -0.68, 4.2, s, now)
+    this.drawLightning(x, y, 22 * s, s, now)
+  }
+
+  /**
+   * 화염 하나 — 노즐(ox, oy)에서 뒤(-x)로 뻗는 카툰 불꽃. `ang`으로 벌어지고, `ph`(위상)로 길이와 꼬리가
+   * 따로 흔들린다. 안쪽 두 겹은 외곽선 없이 색만 겹쳐 심지가 뜨겁게 보이게 한다
+   */
+  private drawPlume(ox: number, oy: number, len: number, half: number, ang: number, ph: number, s: number, now: number): void {
+    const ctx = this.ctx
+    // 주기도 화염마다 다르게 — 위상만 다르면 셋이 같은 박자로 커졌다 작아져 한 덩이로 보인다
+    const pulse = 0.85 + 0.15 * Math.sin(now / (38 + ph * 3) + ph)
+    const wob = half * 0.95 * Math.sin(now / (52 + ph * 5) + ph * 1.7)
+    ctx.save()
+    ctx.translate(ox, oy)
+    ctx.rotate(ang)
+    const layer = (k: number, fill: string, stroke: boolean) => {
+      const l = len * pulse * k
+      const hh = half * k
       ctx.beginPath()
-      ctx.moveTo(x - 12 * s, y - half)
-      ctx.lineTo(x - 12 * s - len * flick, y)
-      ctx.lineTo(x - 12 * s, y + half)
+      ctx.moveTo(0, -hh)
+      ctx.quadraticCurveTo(-l * 0.45, -hh * 1.25, -l, wob * k)
+      ctx.quadraticCurveTo(-l * 0.45, hh * 1.25, 0, hh)
       ctx.closePath()
       ctx.fillStyle = fill
       ctx.fill()
-      ctx.strokeStyle = COL.ink
-      ctx.lineWidth = 2 * s
-      ctx.lineJoin = 'round'
-      ctx.stroke()
+      if (stroke) {
+        ctx.strokeStyle = COL.ink
+        ctx.lineWidth = 2 * s
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+      }
     }
-    flame(76 * s, 18 * s, COL.sonicHot)
-    flame(54 * s, 12 * s, COL.player)
-    flame(32 * s, 6 * s, COL.sonicFlame)
-    this.drawLightning(x, y, 22 * s, s, now)
+    layer(1, COL.sonicHot, true)
+    layer(0.66, COL.player, false)
+    layer(0.34, COL.sonicFlame, false)
+    ctx.restore()
   }
 
   /** 토르식 전기 — 플레이어 주위 번개 아크(흰 심 + 파란 광채)가 프레임마다 다르게 번쩍인다 */
