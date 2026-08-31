@@ -1185,7 +1185,7 @@ export class Renderer {
     // 로켓 불꽃 — 굵은 화염 하나 + 뒤로 흩어지는 불똥 (BUILD 31). 갈래를 셋으로 나눠봤지만(B28~) 캐릭터가
     // 44px 남짓이라 갈래 사이 틈이 2px밖에 안 되고, 속도선·번개·잔상과 겹쳐 빗살 노이즈로 읽혔다.
     // 이 크기에서 불을 팔아주는 건 갈래 수가 아니라 움직임이다 — 실루엣은 하나로 두고 길이·꼬리를 흔든다
-    this.drawPlume(x - 10 * s, y, 92 * s, 21 * s, 0, 0, s, now)
+    this.drawPlume(x - 10 * s, y, 86 * s, 21 * s, 0, 0, s, now)
     // 불똥 — 화염 끝 너머로 떨어져 나가 작아지며 사라진다. 각자 다른 주기로 떠서 "갈래"의 산만함 없이 흩어짐만 준다
     for (let i = 0; i < 5; i++) {
       const t = ((now / (620 + i * 130)) + i * 0.37) % 1
@@ -1207,84 +1207,95 @@ export class Renderer {
   }
 
   /**
-   * 화염 — 손그림 느낌의 삐뚤빼뚤한 불덩이 (BUILD 31, 사용자 "너무 컴퓨터 그림 같다 / 길게 뻗는 게 아니다").
+   * 화염 — **원 사슬의 바깥 윤곽**으로 그린다 (BUILD 31, 사용자 "🔥 이모지 정도만 되어도 좋겠다").
    *
-   * 계산식으로 만든 좌우 대칭 곡선은 아무리 흔들어도 기계처럼 보인다. 손그림으로 읽히게 하는 건 둘이다:
-   * ① **불규칙한 윤곽** — 위·아래 가장자리의 혀 개수와 길이가 서로 다르고 매번 어긋난다
-   * ② **boil** — 90ms마다 난수 시드를 갈아 선을 다시 그린다. 전통 2D 애니메이션에서 선이 떨리는 그 효과다.
-   * 매 프레임 갈면 지직거리고, 안 갈면 죽은 그림이 된다
+   * 앞선 시도들(사인파 물방울·톱니·시드 난수)은 전부 계산식으로 곡선을 만들어서, 아무리 흔들어도
+   * 기계로 읽혔다. 만화 불·구름·연기의 정석은 **크기가 줄어드는 원을 사슬처럼 늘어놓고 그 실루엣만
+   * 따는 것**이다: 윤곽이 원의 호와 공통 접선으로만 이루어져 통통한 불꽃 모양이 저절로 나온다.
+   * 끝으로 갈수록 반지름이 줄고 사슬이 위로 휘어 혀끝이 말린다.
    */
   private drawPlume(ox: number, oy: number, len: number, half: number, ang: number, ph: number, s: number, now: number): void {
     const ctx = this.ctx
-    const boil = Math.floor(now / 90)
-    /** 고정 난수 — 이 화염의 "기본 그림". 프레임이 바뀌어도 변하지 않는다 */
-    const base = (i: number): number => {
-      const v = Math.sin(i * 78.233 + ph * 37.7) * 43758.5453
-      return v - Math.floor(v)
-    }
-    /** 흔들림 난수 — 90ms마다 갈린다. 기본 그림을 조금씩 고쳐 그리는 정도로만 쓴다 */
-    const wob = (i: number): number => {
-      const v = Math.sin(boil * 12.9898 + i * 41.117 + ph * 7.3) * 24634.6345
-      return v - Math.floor(v) - 0.5
-    }
+    const osc = (rate: number, phase: number): number =>
+      0.62 * Math.sin(now / rate + phase) + 0.38 * Math.sin(now / (rate * 1.87) + phase * 1.6)
+    // 사슬: 뿌리(0)에서 혀끝(4)으로 갈수록 작아지고 위로 휜다. 마디마다 다른 주기로 부풀었다 줄었다 한다
+    // 반지름을 단조 감소시키면 매끈한 원뿔이 된다. 중간중간 되키워야(0.74 → 0.84) 이음매가 꺾이며
+    // 불꽃 특유의 혹이 생긴다 — 🔥의 울퉁불퉁한 혀가 이것이다
+    const AT = [0, 0.2, 0.37, 0.55, 0.7, 0.87]
+    const RR = [1, 0.74, 0.84, 0.5, 0.56, 0.2]
+    const CURL = [0, 0.08, 0.2, 0.42, 0.62, 0.95]
     ctx.save()
     ctx.translate(ox, oy)
     ctx.rotate(ang)
-    const TEETH = 5
-    /** 한 겹의 윤곽 — 위·아래가 서로 다른 난수를 써 좌우 대칭이 생기지 않는다 */
-    const outline = (k: number, seed: number): Array<[number, number]> => {
-      const l = len * k * (1 + 0.1 * wob(seed))
-      const hh = half * k
-      const pts: Array<[number, number]> = []
-      const edge = (sign: number, es: number): Array<[number, number]> => {
-        const out: Array<[number, number]> = []
-        for (let i = 0; i < TEETH; i++) {
-          const t = (i + 0.5) / TEETH
-          const taper = 1 - t * 0.5
-          const vx = -l * (t - 0.42 / TEETH)
-          const px = -l * (t + 0.34 / TEETH) - l * 0.05 * base(es + i + 13)
-          out.push([vx, sign * hh * taper * (0.58 + 0.14 * base(es + i) + 0.1 * wob(es + i + 3))])
-          out.push([px, sign * hh * taper * (0.94 + 0.22 * base(es + i + 19) + 0.14 * wob(es + i + 7))])
-        }
-        return out
-      }
-      pts.push([0, -hh * 0.95])
-      pts.push(...edge(-1, seed + 30))
-      pts.push([-l, hh * 0.35 * wob(seed + 4)]) // 맨 끝
-      pts.push(...edge(1, seed + 60).reverse())
-      pts.push([0, hh * 0.95])
-      return pts
+    const chain = (k: number, li: number): Array<{ x: number; y: number; r: number }> => {
+      const stretch = 1 + 0.12 * osc(210 + li * 40, ph + li)
+      return AT.map((t, i) => ({
+        x: -len * k * t * stretch,
+        y: -half * k * CURL[i]! * (0.8 + 0.5 * osc(150 + i * 26 + li * 33, ph + i * 1.3 + li)),
+        r: half * k * RR[i]! * (1 + 0.14 * osc(120 + i * 21 + li * 29, ph + i * 2.1 + li * 1.7)),
+      }))
     }
-    const path = (pts: Array<[number, number]>, jitter: number, pass: number): void => {
+    /**
+     * 원 사슬의 바깥 윤곽. 이음매마다 두 원의 **공통 외접선**이 닿는 각을 구해(반지름 차이를 반영해야
+     * 접선이 원에서 뜨지 않는다), 위쪽 접선을 따라 끝까지 갔다가 끝 원을 감싸고 아래쪽으로 돌아온다.
+     * 호는 잘게 샘플링해 선분으로 잇는다 — 방향(부호) 실수로 윤곽이 뒤집히는 사고를 원천 차단한다
+     */
+    const outline = (cs: Array<{ x: number; y: number; r: number }>): void => {
+      const n = cs.length
+      const axis: number[] = []
+      const alpha: number[] = []
+      for (let i = 0; i < n - 1; i++) {
+        const a = cs[i]!
+        const b = cs[i + 1]!
+        const d = Math.hypot(b.x - a.x, b.y - a.y) || 1
+        axis.push(Math.atan2(b.y - a.y, b.x - a.x))
+        alpha.push(Math.acos(Math.max(-1, Math.min(1, (a.r - b.r) / d))))
+      }
+      const pts: Array<[number, number]> = []
+      const at = (c: { x: number; y: number; r: number }, a: number): [number, number] => [c.x + Math.cos(a) * c.r, c.y + Math.sin(a) * c.r]
+      /** a0 → a1 로 **음의 방향**(화면상 시계 반대)으로 도는 호를 샘플링 */
+      const arc = (c: { x: number; y: number; r: number }, a0: number, a1: number): void => {
+        let d = (a1 - a0) % (Math.PI * 2)
+        if (d > 0) d -= Math.PI * 2
+        const steps = Math.max(2, Math.ceil(Math.abs(d) / 0.22))
+        for (let k = 1; k <= steps; k++) pts.push(at(c, a0 + (d * k) / steps))
+      }
+      // 위쪽: 접선점에서 접선점으로 직선, 사이 원에서는 짧은 호
+      pts.push(at(cs[0]!, axis[0]! + alpha[0]!))
+      for (let i = 1; i < n - 1; i++) {
+        pts.push(at(cs[i]!, axis[i - 1]! + alpha[i - 1]!))
+        arc(cs[i]!, axis[i - 1]! + alpha[i - 1]!, axis[i]! + alpha[i]!)
+      }
+      // 끝 원 감싸기 — 위 접선각에서 아래 접선각까지, 진행 방향(axis)을 지나며
+      const last = cs[n - 1]!
+      pts.push(at(last, axis[n - 2]! + alpha[n - 2]!))
+      arc(last, axis[n - 2]! + alpha[n - 2]!, axis[n - 2]! - alpha[n - 2]!)
+      // 아래쪽: 되돌아온다
+      for (let i = n - 2; i >= 1; i--) {
+        pts.push(at(cs[i]!, axis[i]! - alpha[i]!))
+        arc(cs[i]!, axis[i]! - alpha[i]!, axis[i - 1]! - alpha[i - 1]!)
+      }
+      // 뿌리 원 감싸기 — 아래 접선각에서 위 접선각까지, 뒤쪽(axis+π)을 지나며
+      pts.push(at(cs[0]!, axis[0]! - alpha[0]!))
+      arc(cs[0]!, axis[0]! - alpha[0]!, axis[0]! + alpha[0]!)
       ctx.beginPath()
-      pts.forEach(([px, py], i) => {
-        const jx = jitter * wob(i * 3 + pass * 91)
-        const jy = jitter * wob(i * 3 + 1 + pass * 91)
-        if (i === 0) ctx.moveTo(px + jx, py + jy)
-        else ctx.lineTo(px + jx, py + jy)
-      })
+      pts.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)))
       ctx.closePath()
     }
-    const outer = outline(1, 1)
-    path(outer, 0, 0)
-    ctx.fillStyle = COL.sonicHot
-    ctx.fill()
-    // 손이 떨린 선 — 같은 길을 조금 어긋나게 두 번 (한 번이면 자로 그은 듯 반듯하다)
-    ctx.lineJoin = 'round'
-    for (let pass = 0; pass < 2; pass++) {
-      path(outer, 1.5 * s, pass)
-      ctx.strokeStyle = COL.ink
-      ctx.lineWidth = (pass === 0 ? 2.2 : 1.1) * s
-      ctx.globalAlpha = pass === 0 ? 1 : 0.5
-      ctx.stroke()
+    const layer = (k: number, fill: string, stroke: boolean, li: number): void => {
+      outline(chain(k, li))
+      ctx.fillStyle = fill
+      ctx.fill()
+      if (stroke) {
+        ctx.strokeStyle = COL.ink
+        ctx.lineWidth = 2.4 * s
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+      }
     }
-    ctx.globalAlpha = 1
-    path(outline(0.62, 200), 0, 0)
-    ctx.fillStyle = COL.player
-    ctx.fill()
-    path(outline(0.3, 400), 0, 0)
-    ctx.fillStyle = COL.sonicFlame
-    ctx.fill()
+    layer(1, COL.sonicHot, true, 0)
+    layer(0.66, COL.player, false, 1)
+    layer(0.34, COL.sonicFlame, false, 2)
     ctx.restore()
   }
 
