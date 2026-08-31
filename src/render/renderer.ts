@@ -1182,7 +1182,7 @@ export class Renderer {
     // 로켓 불꽃 — 굵은 화염 하나 + 뒤로 흩어지는 불똥 (BUILD 31). 갈래를 셋으로 나눠봤지만(B28~) 캐릭터가
     // 44px 남짓이라 갈래 사이 틈이 2px밖에 안 되고, 속도선·번개·잔상과 겹쳐 빗살 노이즈로 읽혔다.
     // 이 크기에서 불을 팔아주는 건 갈래 수가 아니라 움직임이다 — 실루엣은 하나로 두고 길이·꼬리를 흔든다
-    this.drawPlume(x - 12 * s, y, 128 * s, 17 * s, 0, 0, s, now)
+    this.drawPlume(x - 10 * s, y, 92 * s, 21 * s, 0, 0, s, now)
     // 불똥 — 화염 끝 너머로 떨어져 나가 작아지며 사라진다. 각자 다른 주기로 떠서 "갈래"의 산만함 없이 흩어짐만 준다
     for (let i = 0; i < 5; i++) {
       const t = ((now / (620 + i * 130)) + i * 0.37) % 1
@@ -1204,89 +1204,149 @@ export class Renderer {
   }
 
   /**
-   * 화염 하나 — 노즐(ox, oy)에서 뒤(-x)로 뻗는 카툰 불꽃. `ang`으로 벌어지고, `ph`(위상)로 길이와 꼬리가
-   * 따로 흔들린다. 안쪽 두 겹은 외곽선 없이 색만 겹쳐 심지가 뜨겁게 보이게 한다
+   * 화염 — 손그림 느낌의 삐뚤빼뚤한 불덩이 (BUILD 31, 사용자 "너무 컴퓨터 그림 같다 / 길게 뻗는 게 아니다").
+   *
+   * 계산식으로 만든 좌우 대칭 곡선은 아무리 흔들어도 기계처럼 보인다. 손그림으로 읽히게 하는 건 둘이다:
+   * ① **불규칙한 윤곽** — 위·아래 가장자리의 혀 개수와 길이가 서로 다르고 매번 어긋난다
+   * ② **boil** — 90ms마다 난수 시드를 갈아 선을 다시 그린다. 전통 2D 애니메이션에서 선이 떨리는 그 효과다.
+   * 매 프레임 갈면 지직거리고, 안 갈면 죽은 그림이 된다
    */
   private drawPlume(ox: number, oy: number, len: number, half: number, ang: number, ph: number, s: number, now: number): void {
     const ctx = this.ctx
-    // 주기도 화염마다 다르게 — 위상만 다르면 셋이 같은 박자로 커졌다 작아져 한 덩이로 보인다
-    const pulse = 0.85 + 0.15 * Math.sin(now / (38 + ph * 3) + ph)
-    const wob = half * 0.95 * Math.sin(now / (52 + ph * 5) + ph * 1.7)
+    const boil = Math.floor(now / 90)
+    /** 고정 난수 — 이 화염의 "기본 그림". 프레임이 바뀌어도 변하지 않는다 */
+    const base = (i: number): number => {
+      const v = Math.sin(i * 78.233 + ph * 37.7) * 43758.5453
+      return v - Math.floor(v)
+    }
+    /** 흔들림 난수 — 90ms마다 갈린다. 기본 그림을 조금씩 고쳐 그리는 정도로만 쓴다 */
+    const wob = (i: number): number => {
+      const v = Math.sin(boil * 12.9898 + i * 41.117 + ph * 7.3) * 24634.6345
+      return v - Math.floor(v) - 0.5
+    }
     ctx.save()
     ctx.translate(ox, oy)
     ctx.rotate(ang)
-    const layer = (k: number, fill: string, stroke: boolean) => {
-      const l = len * pulse * k
+    const TEETH = 5
+    /** 한 겹의 윤곽 — 위·아래가 서로 다른 난수를 써 좌우 대칭이 생기지 않는다 */
+    const outline = (k: number, seed: number): Array<[number, number]> => {
+      const l = len * k * (1 + 0.1 * wob(seed))
       const hh = half * k
-      ctx.beginPath()
-      ctx.moveTo(0, -hh)
-      ctx.quadraticCurveTo(-l * 0.45, -hh * 1.05, -l, wob * k)
-      ctx.quadraticCurveTo(-l * 0.45, hh * 1.05, 0, hh)
-      ctx.closePath()
-      ctx.fillStyle = fill
-      ctx.fill()
-      if (stroke) {
-        ctx.strokeStyle = COL.ink
-        ctx.lineWidth = 2 * s
-        ctx.lineJoin = 'round'
-        ctx.stroke()
+      const pts: Array<[number, number]> = []
+      const edge = (sign: number, es: number): Array<[number, number]> => {
+        const out: Array<[number, number]> = []
+        for (let i = 0; i < TEETH; i++) {
+          const t = (i + 0.5) / TEETH
+          const taper = 1 - t * 0.5
+          const vx = -l * (t - 0.42 / TEETH)
+          const px = -l * (t + 0.34 / TEETH) - l * 0.05 * base(es + i + 13)
+          out.push([vx, sign * hh * taper * (0.58 + 0.14 * base(es + i) + 0.1 * wob(es + i + 3))])
+          out.push([px, sign * hh * taper * (0.94 + 0.22 * base(es + i + 19) + 0.14 * wob(es + i + 7))])
+        }
+        return out
       }
+      pts.push([0, -hh * 0.95])
+      pts.push(...edge(-1, seed + 30))
+      pts.push([-l, hh * 0.35 * wob(seed + 4)]) // 맨 끝
+      pts.push(...edge(1, seed + 60).reverse())
+      pts.push([0, hh * 0.95])
+      return pts
     }
-    layer(1, COL.sonicHot, true)
-    layer(0.66, COL.player, false)
-    layer(0.34, COL.sonicFlame, false)
+    const path = (pts: Array<[number, number]>, jitter: number, pass: number): void => {
+      ctx.beginPath()
+      pts.forEach(([px, py], i) => {
+        const jx = jitter * wob(i * 3 + pass * 91)
+        const jy = jitter * wob(i * 3 + 1 + pass * 91)
+        if (i === 0) ctx.moveTo(px + jx, py + jy)
+        else ctx.lineTo(px + jx, py + jy)
+      })
+      ctx.closePath()
+    }
+    const outer = outline(1, 1)
+    path(outer, 0, 0)
+    ctx.fillStyle = COL.sonicHot
+    ctx.fill()
+    // 손이 떨린 선 — 같은 길을 조금 어긋나게 두 번 (한 번이면 자로 그은 듯 반듯하다)
+    ctx.lineJoin = 'round'
+    for (let pass = 0; pass < 2; pass++) {
+      path(outer, 1.5 * s, pass)
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = (pass === 0 ? 2.2 : 1.1) * s
+      ctx.globalAlpha = pass === 0 ? 1 : 0.5
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+    path(outline(0.62, 200), 0, 0)
+    ctx.fillStyle = COL.player
+    ctx.fill()
+    path(outline(0.3, 400), 0, 0)
+    ctx.fillStyle = COL.sonicFlame
+    ctx.fill()
     ctx.restore()
   }
 
-  /** 토르식 전기 — 플레이어 주위 번개 아크(흰 심 + 붉은 광채)가 프레임마다 다르게 번쩍인다 */
+  /**
+   * 전기 아크 — 얇은 심 + 옅은 광채, 잔마디 지그재그, 짧은 가지. 프레임마다 새로 그린다.
+   * (BUILD 31, 사용자 "거미 다리 같다") 예전엔 6px 굵기에 마디 3~4개가 사방으로 뻗어 다리로 읽혔다.
+   * 진짜처럼 보이게 하는 건 굵기가 아니라 **잔마디·가지·뒤로 흐르는 방향**이다
+   */
   private drawLightning(x: number, y: number, r: number, s: number, now: number): void {
     const ctx = this.ctx
-    const frame = Math.floor(now / 45) // 45ms마다 새 패턴
-    const rnd = (i: number) => {
+    const frame = Math.floor(now / 38) // 38ms마다 새 패턴 — 눈이 못 따라올 만큼 빠르게 갈아탄다
+    const rnd = (i: number): number => {
       const v = Math.sin(frame * 12.9898 + i * 78.233) * 43758.5453
       return v - Math.floor(v)
     }
-    // 전기 오라
+    // 열 오라
     ctx.beginPath()
     ctx.arc(x, y, r * 1.7, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,204,51,0.28)'
+    ctx.fillStyle = 'rgba(255,204,51,0.26)'
     ctx.fill()
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    for (let b = 0; b < 7; b++) {
-      const a0 = rnd(b * 10) * Math.PI * 2
-      let px = x + Math.cos(a0) * r * 1.1
-      let py = y + Math.sin(a0) * r * 1.1
-      const segs = 3 + Math.floor(rnd(b * 10 + 1) * 3)
-      const len = r * (0.9 + rnd(b * 10 + 2) * 1.2)
-      const dir = a0 + (rnd(b * 10 + 3) - 0.5) * 1.2 - 0.6 // 대체로 뒤·바깥으로
+    /** 한 줄기 — 시작점·방향에서 잔마디로 뻗어 나간 점들 */
+    const bolt = (px0: number, py0: number, dir: number, len: number, segs: number, jit: number, seed: number): Array<[number, number]> => {
+      let px = px0
+      let py = py0
       const pts: Array<[number, number]> = [[px, py]]
       for (let k = 1; k <= segs; k++) {
-        const jitter = (rnd(b * 10 + 3 + k) - 0.5) * r * 0.9
-        px += Math.cos(dir) * (len / segs) + Math.cos(dir + Math.PI / 2) * jitter
-        py += Math.sin(dir) * (len / segs) + Math.sin(dir + Math.PI / 2) * jitter
+        const decay = 1 - (k / segs) * 0.5 // 끝으로 갈수록 잔떨림이 준다
+        const d = dir + (rnd(seed + k) - 0.5) * 0.9
+        const j = (rnd(seed + k + 41) - 0.5) * jit * decay
+        px += Math.cos(d) * (len / segs) + Math.cos(d + Math.PI / 2) * j
+        py += Math.sin(d) * (len / segs) + Math.sin(d + Math.PI / 2) * j
         pts.push([px, py])
       }
-      const path = () => {
-        ctx.beginPath()
-        ctx.moveTo(pts[0]![0], pts[0]![1])
-        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k]![0], pts[k]![1])
+      return pts
+    }
+    const line = (pts: Array<[number, number]>, w: number, color: string): void => {
+      ctx.beginPath()
+      ctx.moveTo(pts[0]![0], pts[0]![1])
+      for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k]![0], pts[k]![1])
+      ctx.strokeStyle = color
+      ctx.lineWidth = w * s
+      ctx.stroke()
+    }
+    const n = 4 + Math.floor(rnd(99) * 3)
+    for (let b = 0; b < n; b++) {
+      const seed = b * 17 + 3
+      // 시작점은 몸 둘레, 방향은 대체로 뒤(π) 쪽 — 앞으로 뻗으면 다리처럼 보인다
+      const a0 = Math.PI + (rnd(seed) - 0.5) * 2.6
+      const px0 = x + Math.cos(a0) * r * 0.95
+      const py0 = y + Math.sin(a0) * r * 0.95
+      const dir = a0 + (rnd(seed + 1) - 0.5) * 1.1
+      const len = r * (0.6 + rnd(seed + 2) * 0.9)
+      const pts = bolt(px0, py0, dir, len, 7 + Math.floor(rnd(seed + 3) * 4), r * 0.22, seed + 100)
+      line(pts, 3.6, 'rgba(255,150,70,0.45)') // 옅은 광채
+      line(pts, 1.4, 'rgba(255,250,235,1)') // 얇은 심
+      // 가지 — 중간 마디에서 짧게 갈라진다
+      if (rnd(seed + 4) > 0.45) {
+        const at = 1 + Math.floor(rnd(seed + 5) * (pts.length - 2))
+        const [bx, by] = pts[at]!
+        const br = bolt(bx, by, dir + (rnd(seed + 6) - 0.5) * 1.8, len * 0.45, 4, r * 0.18, seed + 200)
+        line(br, 2.4, 'rgba(255,150,70,0.28)')
+        line(br, 0.9, 'rgba(255,246,224,0.85)')
       }
-      path()
-      ctx.strokeStyle = 'rgba(230,57,43,0.8)'
-      ctx.lineWidth = 6 * s
-      ctx.stroke()
-      path()
-      ctx.strokeStyle = 'rgba(255,127,63,0.9)'
-      ctx.lineWidth = 3.5 * s
-      ctx.stroke()
-      // 푸른 스파크는 실험 후 기각 (BUILD 31): 아크가 6/3.5/1.8px로 얇아 안쪽을 식히면 파랑이 아니라
-      // 흐린 분홍으로 읽히고, 확실히 파랗게 하려면 아크 전체를 식혀야 하는데 그러면 D-012의 근거
-      // (시스템 노랑 → 발동색으로 이어지는 인과, 주인공이 불붙은 것으로 보이는 것)가 깨진다
-      path()
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 1.8 * s
-      ctx.stroke()
     }
   }
 
