@@ -745,7 +745,8 @@ export class Renderer {
       ctx.beginPath()
       for (let k = 0; k <= 40; k++) {
         const a = start + (span * k) / 40
-        const r = R + wob * 1.3 * u * Math.sin(a * 3 + k * 0.1)
+        // 흔들림은 아주 작게 — 1.3u·세 봉우리는 감자처럼 보였다 (사용자 "너무 안 동그래"). 원은 원이어야 하고 손맛은 선 두 겹에서 온다
+        const r = R + wob * 0.45 * u * (Math.sin(a * 2 + 0.4) + 0.5 * Math.sin(a * 5 + k * 0.05))
         const px = sunX + Math.cos(a) * r
         const py = sunY + Math.sin(a) * r
         if (k === 0) ctx.moveTo(px, py)
