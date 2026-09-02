@@ -583,13 +583,13 @@ export class Renderer {
       this.drawGaugeFrame(gx, gy, gw, gh, c, TUNING.sonic.sweetHalf, u)
       this.drawGaugeMarker(gx + gw * m, gy, gh, Math.abs(m - c) <= TUNING.sonic.sweetHalf, u)
     }
-    // 손가락
+    // 손가락 — 누르면 손끝 쪽(위)으로, 링은 손끝에 (시작 데모와 같은 규약)
     const fx = d.x + d.w * 0.5
-    const fy = d.y + d.h - 22 * u + (pressed ? 4 * u : 0)
+    const fy = d.y + d.h - 18 * u + (pressed ? -4 * u : 0)
     if (pressed) {
       const rp = (t % 700) / 700
       ctx.beginPath()
-      ctx.arc(fx, fy - 8 * u, (8 + 14 * rp) * u, 0, Math.PI * 2)
+      ctx.arc(fx - 3.5 * u, fy - 22 * u, (7 + 14 * rp) * u, 0, Math.PI * 2)
       ctx.strokeStyle = COL.target
       ctx.globalAlpha = 0.7 * (1 - rp)
       ctx.lineWidth = 2.5 * u
@@ -1805,14 +1805,15 @@ export class Renderer {
     ctx.globalAlpha = Math.max(0, fade)
     this.drawPlayer(ball.x, ball.y, 13 * u, u, velX * 300, stage !== 1, false, pal, seasonAt(0), now)
 
-    // 손가락: 누르는 동안 아래로 내려가고 터치 링이 퍼진다
+    // 손가락: 검지가 위를 향하므로 누르는 동안 손끝 쪽(위)으로 밀고 터치 링은 손끝에서 퍼진다.
+    // 아래로 내리면 "손을 뒤로 빼는" 동작으로 읽혀 누름·뗌이 반대로 보였다 (사용자 지적, BUILD 33)
     const pressed = stage !== 1
     const fx = d.x + d.w * 0.5
-    const fy = d.y + d.h - 24 * u + (pressed ? 5 * u : 0)
+    const fy = d.y + d.h - 20 * u + (pressed ? -5 * u : 0)
     if (pressed) {
       const rp = (t % 700) / 700
       ctx.beginPath()
-      ctx.arc(fx, fy - 8 * u, (10 + 16 * rp) * u, 0, Math.PI * 2)
+      ctx.arc(fx - 3.5 * u, fy - 22 * u, (8 + 16 * rp) * u, 0, Math.PI * 2)
       ctx.strokeStyle = COL.target
       ctx.globalAlpha = Math.max(0, fade) * 0.7 * (1 - rp)
       ctx.lineWidth = 2.5 * u
