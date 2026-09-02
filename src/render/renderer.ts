@@ -690,30 +690,8 @@ export class Renderer {
     const summer = weightOf('summer')
     const winter = weightOf('winter')
     const R = (40 + 16 * summer - 12 * winter) * u
-    if (summer > 0) {
-      // 광선 — 천천히 돌며 이글거린다
-      ctx.save()
-      ctx.translate(sunX, sunY)
-      ctx.rotate((performance.now() / 1000) * 0.25)
-      ctx.globalAlpha = summer
-      ctx.fillStyle = pal.sun
-      ctx.strokeStyle = COL.ink
-      ctx.lineWidth = 2.5 * u
-      ctx.lineJoin = 'round'
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2
-        const len = (i % 2 === 0 ? 30 : 20) * u
-        ctx.beginPath()
-        ctx.moveTo(Math.cos(a - 0.14) * (R + 6 * u), Math.sin(a - 0.14) * (R + 6 * u))
-        ctx.lineTo(Math.cos(a) * (R + 6 * u + len), Math.sin(a) * (R + 6 * u + len))
-        ctx.lineTo(Math.cos(a + 0.14) * (R + 6 * u), Math.sin(a + 0.14) * (R + 6 * u))
-        ctx.closePath()
-        ctx.fill()
-        ctx.stroke()
-      }
-      ctx.restore()
-    }
-    // 테두리 밖 후광은 여름(이글거림)에만 — 봄·가을·겨울은 외곽선까지만 그려 작고 담백하게 (사용자: "그 테두리가 AI 그림 같다")
+    const now = performance.now()
+    // 테두리 밖 후광은 여름(이글거림)에만, 광선보다 먼저(획의 밑동이 가리지 않게) — 봄·가을·겨울은 외곽선까지만 그려 작고 담백하게 (사용자: "그 테두리가 AI 그림 같다")
     if (summer > 0) {
       ctx.beginPath()
       ctx.arc(sunX, sunY, R + 14 * u, 0, Math.PI * 2)
@@ -722,7 +700,59 @@ export class Renderer {
       ctx.fill()
       ctx.globalAlpha = 1
     }
-    this.outlinedCircle(sunX, sunY, R, pal.sun, 3 * u)
+    if (summer > 0) {
+      // 광선 — 대시 화염(drawFlameFan)과 같은 방법: 면을 칠하지 않고 **둥근 끝의 굵은 획을 긋는다** (BUILD 34,
+      // 사용자 "화염처럼 손스케치 느낌으로"). 삼각형 면+외곽선은 도형으로 읽혔다. 주황 굵은 획 위에 노랑 짧은 획을
+      // 겹쳐 크레용 두 번 그은 맛. 간격·길이가 조금씩 다르고 끝만 살짝 일렁인다
+      ctx.save()
+      ctx.translate(sunX, sunY)
+      ctx.rotate((now / 1000) * 0.25)
+      ctx.globalAlpha = summer
+      ctx.lineCap = 'round'
+      const N = 14
+      const r0 = R + 3 * u
+      for (const [color, wid, scale] of [[COL.player, 7, 1], [pal.sun, 3.6, 0.78]] as const) {
+        ctx.strokeStyle = color
+        ctx.lineWidth = wid * u
+        for (let i = 0; i < N; i++) {
+          const a = (i / N) * Math.PI * 2 + 0.07 * Math.sin(i * 3.7)
+          const base = (i % 2 === 0 ? 30 : 21) * u
+          const l = base * scale * (0.88 + 0.12 * Math.sin(now / (150 + i * 19) + i * 1.3))
+          const sway = 0.06 * Math.sin(now / (190 + i * 13) + i)
+          ctx.beginPath()
+          ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0)
+          ctx.quadraticCurveTo(
+            Math.cos(a + sway * 0.5) * (r0 + l * 0.55),
+            Math.sin(a + sway * 0.5) * (r0 + l * 0.55),
+            Math.cos(a + sway) * (r0 + l),
+            Math.sin(a + sway) * (r0 + l),
+          )
+          ctx.stroke()
+        }
+      }
+      ctx.restore()
+    }
+    // 몸 — 면은 칠하되 외곽선은 **손으로 두 번 돌린 선**: 시작 각이 다른 두 호가 겹치는 자리는 진하고, 반지름이
+    // 조금씩 흔들린다. 컴퍼스 원 하나는 도형으로 읽힌다. 흔들림은 고정(불처럼 boil하지 않는다)
+    ctx.beginPath()
+    ctx.arc(sunX, sunY, R, 0, Math.PI * 2)
+    ctx.fillStyle = pal.sun
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineCap = 'round'
+    ctx.lineWidth = 2.6 * u
+    for (const [start, span, wob] of [[-0.6, 5.7, 1], [2.4, 5.3, -1]] as const) {
+      ctx.beginPath()
+      for (let k = 0; k <= 40; k++) {
+        const a = start + (span * k) / 40
+        const r = R + wob * 1.3 * u * Math.sin(a * 3 + k * 0.1)
+        const px = sunX + Math.cos(a) * r
+        const py = sunY + Math.sin(a) * r
+        if (k === 0) ctx.moveTo(px, py)
+        else ctx.lineTo(px, py)
+      }
+      ctx.stroke()
+    }
     this.drawSunFace(sunX, sunY, R, st)
 
     // 구름 (패럴랙스 0.15, 주기 반복)
