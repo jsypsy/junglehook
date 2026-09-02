@@ -232,17 +232,23 @@ export function continuesLeft(g: Game): number {
 }
 
 /**
- * 이어하기 — 마지막으로 지나친 앵커 앞에서 정상 릴리스와 같은 궤적으로 다시 던져진다.
+ * 이어하기 — 죽은 자리에서 정상 릴리스와 같은 궤적으로 다시 던져진다.
  * 로프를 쥔 채 살리면 버튼 탭의 pointerup이 곧바로 놓아 버려 궤적이 운에 좌우된다 → 자유 비행으로 시작.
- * 거리는 현재 위치 기준이라 살짝 줄어든 채 이어진다 (점수 규칙 그대로)
+ * 높이는 **다음 잎 기준**(dy 아래) — 마지막 잎 기준(B9~31)이면 후반처럼 잎 높이가 크게 흔들리는 구간에서
+ * 다음 잎이 플레이어보다 낮게 놓여 잡을 게 없고, 떨어지다 코앞의 잎을 짧은 로프로 잡아 제자리 회전하다 잡혔다
+ * (봇 계측 2026-09-02: 이어하기 후 5초 안 사망 11/119 → 1/119). x는 죽은 자리를 넘지 않는다(죽음이 거리를 주지 않게)
+ * — 단 다음 잎보다 dx 이상 앞에 두어 첫 잡기가 게임 시작(첫 잎 150 앞·130 위)과 같은 기하가 되게 한다
  */
 export function continueRun(g: Game): boolean {
   if (g.phase !== 'dead' || continuesLeft(g) <= 0) return false
   const list = g.field.anchors
+  const deadX = g.body.pos.x
   let base = list[0]!
-  for (const a of list) if (a.x <= g.body.pos.x && a.x >= base.x) base = a
+  for (const a of list) if (a.x <= deadX && a.x >= base.x) base = a
+  const next = list.find((a) => a.x > base.x) ?? base
   const sp = TUNING.continueSpawn
-  g.body = createBody({ x: base.x + sp.dx, y: base.y + sp.dy }, { x: sp.vx, y: sp.vy })
+  const x = Math.max(base.x, Math.min(deadX, next.x - sp.dx))
+  g.body = createBody({ x, y: next.y + sp.dy }, { x: sp.vx, y: sp.vy })
   g.continues += 1
   g.holding = false
   g.phase = 'playing'
