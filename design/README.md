@@ -43,6 +43,6 @@ SEASON_PALETTE 3톤(dark·base·hi). 사용자 요청 "겨울엔 앙상한 나�
 
 ---
 
-**게시본(`junglehook-*.html`)은 커밋하지 않는다** — 캔버스 에디터 코드가 통째로 들어가 한 장에 2MB대라
+**게시본(`naranara-*.html`, 개명 전에 구운 것은 `junglehook-*.html`)은 커밋하지 않는다** — 캔버스 에디터 코드가 통째로 들어가 한 장에 2MB대라
 푸시가 막힌다. 원본(`*.dc.html` + `canvas.json`)만 커밋하고, 필요하면 `/design` 스킬로 다시 굽는다.
 

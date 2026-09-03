@@ -7,8 +7,10 @@ _Last updated: 2026-09-03 (BUILD 32)_
 
 ```
 컨셉       원버튼 그래플 스윙 (홀드=로프+감기+펌프, 릴리스=관성 발사). D-001, D-005, D-006
-이름       **날아날아 / naranara** (D-019, 2026-09-03) — 동명 검색 완료. 리포명만 junglehook 유지. GRAC 제명은 신청 직전 재확인
-경로       /Users/jsypsy/Documents/workspace/toss/junglehook. 형제 앱: toss/hanjulpang(출시) · toss/shootingstar(검수 단계)
+이름       **날아날아 / naranara** (D-019, 2026-09-03) — 동명 검색 완료. GRAC 제명은 신청 직전 재확인
+리포       github.com/jsypsy/naranara — 2026-09-03 junglehook에서 개명(D-019 추가 결정). 옛 URL은 GitHub가 리다이렉트
+경로       /Users/jsypsy/Documents/workspace/toss/junglehook (로컬 폴더명은 다음 로컬 세션에서 naranara로 맞출 것).
+           형제 앱: toss/hanjulpang(출시) · toss/shootingstar(검수 단계)
 코드       BUILD 32 — 이름 변경: appName `naranara` · `intoss://naranara` · 저장 `nara.v1` · 계측 `nara_` · 개발 훅 `__nara`
            B31 잎이 가을 내내 지고 겨울 초입에 마저 떨어짐(`leafDensityAt`) · 대시 화염을 **획으로 긋는**
            방식(`drawFlameFan`) · 스파크(번개 아크) 제거 · HUD 두 줄 블록의 세로 중앙 = 태양 중심, 둘 다 위로
@@ -26,7 +28,7 @@ _Last updated: 2026-09-03 (BUILD 32)_
            → B27로 1년 1회. 재계측 102~118초·1900~2038m·대시 1.9~2.0회 (봇은 게이지를 항상 맞추는 상한).
            **난이도는 아직 실기기 미판정** — B29~31은 로컬 개발서버로만 봤다
 콘솔       naranara 등록 완료(2026-09-03) · **B32 미배포**. junglehook 쪽 B31 배포 `01a0584b…`는 옛 슬러그라 무효
-저장소     origin/main = `aff8a5d` (2026-08-31 푸시). 디자인 캔버스 **게시본은 커밋 안 함**(2MB대라 푸시가 막힌다)
+저장소     origin/main = `09cfdc7` (2026-09-03, PR #1 머지). 디자인 캔버스 **게시본은 커밋 안 함**(2MB대라 푸시가 막힌다)
 디자인     밝은 카툰 정글(D-008) + 사계절(D-010) + 캐노피(D-011) + 계절 나무(design/trees) — `design/`, 링크는 design/README.md
 다음       **B32 배포(로컬 또는 GitHub Actions)** → **실기기 판정**(B31 항목 그대로) → **효과음 추가** → Phase 1 잔여
 ```

@@ -402,3 +402,11 @@
 - 표시 이름: index.html · 타이틀(renderer) · 문자 문구(imessage.mjs) · 디자인 보드 원본 · 문서 머리
 - 콘솔은 `naranara`로 새로 등록해야 한다 — 로컬 세션에서. 그때까지 B32는 배포 안 됨
 - 검증: npm test / npm run build
+
+
+## 2026-09-03 — 리포명 변경: junglehook → naranara
+
+- 사용자가 GitHub 리포를 `jsypsy/naranara`로 개명 (D-019에 추가 기록). 위 "리포명은 junglehook 유지"는 이로써 뒤집힘
+- 문서의 현재 상태 서술만 갱신: HANDOFF 리포·경로 줄, D-019, design/README 게시본 파일명. 과거 기록(D-002,
+  `tools/latest-deployment.json`의 옛 슬러그 B31 배포)은 이력이라 그대로 둠
+- 코드는 손댈 곳 없음 — package.json `name`·appName·딥링크·접두어는 B32에서 이미 `naranara`

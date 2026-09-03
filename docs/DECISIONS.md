@@ -327,6 +327,10 @@
 - **슬러그까지 바꾼다.** 출시 전이라 잃는 게 없고 출시 뒤엔 영영 못 바꾼다. appName `naranara` ·
   딥링크 `intoss://naranara` · 저장 접두어 `nara.v1` · 이벤트 접두어 `nara_` · 개발 훅 `__nara`.
   옛 `jgh.v1` 값(테스트 폰의 최고기록·음소거·매뉴얼 표시 상태)은 마이그레이션 없이 버린다 — 출시 전
-  테스트 데이터뿐이다. 리포명은 그대로(junglehook) — 로컬 경로·형제 앱 문서가 얽혀 있어 이득이 없다
+  테스트 데이터뿐이다
+- 리포명: 처음엔 junglehook을 유지하기로 했으나(로컬 경로·형제 앱 문서가 얽혀 이득이 없다고 봄) 같은 날
+  사용자가 **`naranara`로 개명**했다. 이름·슬러그·리포가 하나로 맞는 쪽이 형제 앱 관례(hanjulpang·shootingstar
+  모두 리포명 = 슬러그)와도 일치한다. GitHub가 옛 URL을 리다이렉트하므로 로컬 remote는 그대로 동작하지만
+  `git remote set-url origin https://github.com/jsypsy/naranara`로 맞춰 두는 게 안전하다
 - 콘솔: `junglehook` 미니앱 등록·테스트 배포(B31)는 무효. **`naranara`로 새로 등록**하고 다시 배포한다
 - ⚠️ D-002의 GRAC 제명 재확인 원칙은 그대로 — 신청 직전 등급분류 검색으로 "날아날아" 동명 재확인
