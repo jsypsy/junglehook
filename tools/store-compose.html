@@ -173,15 +173,14 @@
       const dark = KIND === 'logo-dark'
       if (dark) sky('#163a2c', '#0f2a1f')
       else sky(SPRING.skyTop, SPRING.skyBottom)
-      if (!dark) cloud(120, 150, 1.9, SPRING.cloud)
-      // 잎은 우상단, 플레이어는 좌하단에서 앞으로 흔들리는 순간 (grac 02-매달리기 구도)
-      const s = 3.2
-      const lx = 470, ly = 120
-      const px = 235, py = 300, pr = 112
+      // 제목·구름 없이 캐릭터만 (사용자 "로고에 제목은 빼자 지저분해", 2026-09-04).
+      // 자리가 비는 만큼 몸을 키워 목록의 작은 아이콘에서도 표정이 읽히게 한다
+      const s = 4
+      const lx = 470, ly = 128
+      const px = 262, py = 370, pr = 150
       leaf(lx, ly, s, -20)
       rope(px, py, lx, ly, s)
       player(px, py, pr, s, true)
-      title(300, 548, 118, 16, dark ? '#0a1a12' : COL.ink)
       return
     }
     // thumb 1932×828 — 왼쪽: 제목 + 부제 + 캐릭터, 오른쪽: 게임 컷 3장(340×630, 1:1)
