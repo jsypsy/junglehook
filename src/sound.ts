@@ -23,6 +23,10 @@ export class SoundPlayer {
   private clockWatching = false
   /** 진단용 이벤트 타임라인 (개발 배지) */
   private trace: string[] = []
+  /** 회전 충전 지속음 (BUILD 38) — 찬스 잎에 매달려 도는 동안만 켜진다. 단발음과 달리 매 프레임 갱신 */
+  private spinOsc: OscillatorNode | null = null
+  private spinGain: GainNode | null = null
+  private spinFilter: BiquadFilterNode | null = null
   private readonly t0 = performance.now()
 
   private mark(ev: string): void {
@@ -32,6 +36,7 @@ export class SoundPlayer {
 
   setMuted(muted: boolean): void {
     this.muted = muted
+    if (muted) this.spinStop()
   }
 
   isMuted(): boolean {
@@ -80,6 +85,7 @@ export class SoundPlayer {
   /** 백그라운드 전환 — 심사 요건: 사운드 즉시 종료 */
   suspendForBackground(): void {
     this.backgrounded = true
+    this.spinStop()
     this.clockLive = false
     if (this.ctx && this.ctx.state === 'running') {
       void this.ctx.suspend().catch(() => {})
@@ -206,6 +212,61 @@ export class SoundPlayer {
     this.tone(330, 0.05, 0.16, 'sawtooth', 0.11)
     this.tone(262, 0.19, 0.16, 'sawtooth', 0.11)
     this.tone(196, 0.33, 0.3, 'sawtooth', 0.11)
+  }
+
+  /**
+   * 회전 충전 윙윙윙 — 찬스 잎에 매달려 도는 동안 매 프레임 호출. level 0~1은 한 바퀴에 한 번 부푸는 음량
+   * (아래를 지날 때 최대), loops는 완주한 바퀴 수(바퀴마다 음정 한 단↑). 호출이 끊기면 호출부가 spinStop을 부른다.
+   * 지속음이라 시계가 흐르기 전엔 시작하지 않는다 — 보관(pending)도 하지 않는다 (놓치면 그냥 다음 프레임)
+   */
+  spin(level: number, loops: number): void {
+    if (this.muted || this.backgrounded) return
+    const ctx = this.ctx
+    if (!ctx || ctx.state !== 'running' || !this.clockLive) {
+      this.onRunning()
+      return
+    }
+    const t = ctx.currentTime
+    if (!this.spinOsc || !this.spinGain || !this.spinFilter) {
+      const osc = ctx.createOscillator()
+      const filter = ctx.createBiquadFilter()
+      const gain = ctx.createGain()
+      osc.type = 'sawtooth'
+      filter.type = 'lowpass'
+      filter.Q.value = 6
+      gain.gain.setValueAtTime(0, t)
+      osc.connect(filter).connect(gain).connect(ctx.destination)
+      osc.start(t)
+      this.spinOsc = osc
+      this.spinGain = gain
+      this.spinFilter = filter
+    }
+    const lv = Math.min(1, Math.max(0, level))
+    // 음정: 바퀴마다 장3도쯤 올라간다 (110 → 139 → 175 → 220Hz). 장착(3바퀴) 뒤엔 그대로 유지
+    const base = 110 * Math.pow(1.26, Math.min(3, loops))
+    this.spinOsc.frequency.setTargetAtTime(base * (1 + 0.15 * lv), t, 0.03)
+    // "윙"의 질감은 필터가 만든다 — 부풀 때 열리고 죽을 때 닫힌다
+    this.spinFilter.frequency.setTargetAtTime(300 + 1400 * lv, t, 0.03)
+    this.spinGain.gain.setTargetAtTime(0.02 + 0.11 * lv, t, 0.03)
+  }
+
+  /** 회전 충전음 끝 — 놓거나·잡히거나·광고·백그라운드 */
+  spinStop(): void {
+    const ctx = this.ctx
+    const osc = this.spinOsc
+    const gain = this.spinGain
+    this.spinOsc = null
+    this.spinGain = null
+    this.spinFilter = null
+    if (!ctx || !osc || !gain) return
+    try {
+      const t = ctx.currentTime
+      gain.gain.cancelScheduledValues(t)
+      gain.gain.setTargetAtTime(0, t, 0.04)
+      osc.stop(t + 0.25)
+    } catch {
+      // 이미 멈춘 컨텍스트 — 무시
+    }
   }
 
   /** UI 탭 (소리 켜기 확인음) */

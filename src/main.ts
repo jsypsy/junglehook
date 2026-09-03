@@ -40,6 +40,27 @@ function toggleSound(): void {
     sound.button()
   }
 }
+/**
+ * 회전 충전 지속음 (BUILD 38): 찬스 잎에 매달려 도는 동안만. 도전 대기(pending)·히트스톱 중엔 조용하다.
+ * 음량은 앵커 기준 각도로 — 아래(0)를 지날 때 부풀고 위에서 죽어 한 바퀴에 "윙" 한 번. 느리면 작게
+ */
+function updateSpinSound(): void {
+  const b = game.body
+  const so = game.sonic
+  const active = game.phase === 'playing' && so.chance && !so.pending && so.freezeT <= 0 && !!b.anchor
+  if (!active) {
+    if (spinOn) sound.spinStop()
+    spinOn = false
+    return
+  }
+  const a = b.anchor!
+  const ang = Math.atan2(b.pos.x - a.x, b.pos.y - a.y) // 아래 = 0
+  const swell = 0.5 + 0.5 * Math.cos(ang)
+  const speed = Math.min(1, Math.hypot(b.vel.x, b.vel.y) / 700)
+  sound.spin(swell * (0.35 + 0.65 * speed), so.loops)
+  spinOn = true
+}
+let spinOn = false
 /** core가 남긴 이벤트를 소리로 — 매 틱 비운다 */
 function playEvents(): void {
   for (const ev of game.events) {
@@ -192,8 +213,10 @@ function tick(now: number, dt: number): void {
       acc -= SIM_STEP
     }
     playEvents()
+    updateSpinSound()
     if ((game.phase as string) === 'dead') {
       deadAt = now
+      updateSpinSound()
       if (!bestSaved) {
         const m = meters(game)
         const isBest = m > best
