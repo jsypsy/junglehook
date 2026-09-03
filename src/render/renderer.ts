@@ -1670,9 +1670,9 @@ export class Renderer {
     ctx.lineJoin = 'round'
     ctx.strokeStyle = COL.ink
     ctx.lineWidth = 7 * u
-    ctx.strokeText('정글훅', cx, cardY - 52 * u)
+    ctx.strokeText('날아날아', cx, cardY - 52 * u)
     ctx.fillStyle = COL.player
-    ctx.fillText('정글훅', cx, cardY - 52 * u)
+    ctx.fillText('날아날아', cx, cardY - 52 * u)
     this.pill('얼마나 멀리 갈 수 있을까?', cx, cardY - 24 * u, `800 ${Math.round(14 * u)}px ${FONT}`, COL.card, COL.ink, 12 * u, 0, u, true)
 
     // 데모 카드

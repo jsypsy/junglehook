@@ -274,9 +274,10 @@ claude mcp add apps-in-toss-console --transport http \
 
 ## 10. 이 프로젝트에 아직 남은 것
 
-- [x] 이름 확정 — 정글훅/junglehook (D-002). 접두어 `jgh.v1`/`jgh_` 반영 완료
+- [x] 이름 확정 — 날아날아/naranara (D-019, 정글훅 D-002 대체). 접두어 `nara.v1`/`nara_` 반영 완료
 - [ ] GRAC 제명 최종 확인 — 신청 직전 GRAC 등급분류 검색으로 동명 재확인
-- [ ] 콘솔에 **새 미니앱 등록** (워크스페이스 72091 아래, appName=junglehook)
+- [ ] 콘솔에 **새 미니앱 등록** (워크스페이스 72091 아래, appName=naranara). 옛 junglehook 등록은 무효 —
+      B32부터는 naranara로 배포한다
 - [ ] 리워드 광고 지면 발급 → `AD_GROUP_ID` 채우기 (⚠️ 출시 임박 전에는 발급하지
       않는다 — 23일 무노출 삭제)
 - [ ] 등급분류 신청 — 빌드 동결 시점을 미리 정해둔다 (Phase 1 완료 시점 예상)

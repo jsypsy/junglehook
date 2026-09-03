@@ -8,7 +8,7 @@ import type {
 } from './adapter'
 
 /** 뒤로가기를 가로채기 위해 히스토리에 심어두는 표식 */
-const BACK_GUARD = 'junglehook-back-guard'
+const BACK_GUARD = 'naranara-back-guard'
 
 /** 개발용 mock — 광고는 항상 보상 성공으로 처리한다 */
 export class MockAdapter implements PlatformAdapter {

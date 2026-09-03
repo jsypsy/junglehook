@@ -2,11 +2,11 @@ import { defineConfig } from '@apps-in-toss/web-framework/config'
 
 /**
  * ⚠️ `appName`은 콘솔에 등록한 미니앱 이름과 **정확히 같아야** 배포가 붙는다.
- * 콘솔 등록 시 이 슬러그(junglehook)를 그대로 쓴다.
+ * 콘솔 등록 시 이 슬러그(naranara)를 그대로 쓴다.
  * 링크는 `src/platform/ait.ts`의 `MINIAPP_LINK`와 짝이다.
  */
 export default defineConfig({
-  appName: 'junglehook',
+  appName: 'naranara',
   brand: {
     // 밝은 카툰 정글 팔레트의 플레이어/버튼 색 (D-008)
     primaryColor: '#ff7f3f',

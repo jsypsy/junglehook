@@ -8,7 +8,7 @@
       계절 진행 검수 하네스. `npm run dev -- --host` 뒤 폰에서 http://<맥 LAN 주소>:5173/tools/seasons.html
 
       가을·겨울 나무를 보려면 500m 넘게 살아남아야 해서 플레이로는 확인이 사실상 불가능했다 (2026-08-31).
-      게임을 숨겨서 띄우고 개발 훅(`__jgh`)으로 원하는 거리마다 순간이동시킨 뒤,
+      게임을 숨겨서 띄우고 개발 훅(`__nara`)으로 원하는 거리마다 순간이동시킨 뒤,
       그때의 화면을 한 장씩 오려 이어 붙인다. 잎이 어떻게 지는지 한눈에 본다.
 
       순간이동 함정 (HANDOFF): ① 매달린 몸은 anchor를 풀고 옮긴다 ② 찬스가 터지면 세상이 멈추므로
@@ -52,9 +52,9 @@
       function shot(range) {
         const [from, to] = range.split(',').map(Number)
         const w = stage.contentWindow
-        const h = w.__jgh
+        const h = w.__nara
         if (!h) {
-          out.textContent = '개발 훅(__jgh)이 없다 — npm run dev 로 띄운 서버인지 확인'
+          out.textContent = '개발 훅(__nara)이 없다 — npm run dev 로 띄운 서버인지 확인'
           return
         }
         const g = h.game

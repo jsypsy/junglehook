@@ -392,3 +392,13 @@
 - 저장소: origin/main에 41+2 커밋 푸시(BUILD 17 → 31). 디자인 캔버스 게시본은 커밋 제외로 정리
 - 남은 것: B31 실기기 판정 → 효과음(HANDOFF 1번) → Phase 1 잔여(점수 제출·뒤로가기 모달)
 
+
+## 2026-09-03 — 이름 변경: 정글훅 → 날아날아 (BUILD 32)
+
+- 사용자 "이름을 좀 쉬운 걸로 — 발음하기 쉬운 두 글자 반복". 후보를 동작별로 30개 남짓 뽑아 동명 검색
+  (D-002 기준). 하루하루(앵커 하나 ≈ 하루 이틀이라 뜻은 최고)는 동명 앱 다수로 탈락, **날아날아** 확정 (D-019)
+- 슬러그까지 교체: appName `naranara` · `intoss://naranara` · 저장 `nara.v1` · 계측 `nara_` · 개발 훅 `__nara`
+  (`tools/seasons.html`도 함께). 옛 `jgh.v1` 저장값은 버림. 리포명은 junglehook 유지
+- 표시 이름: index.html · 타이틀(renderer) · 문자 문구(imessage.mjs) · 디자인 보드 원본 · 문서 머리
+- 콘솔은 `naranara`로 새로 등록해야 한다 — 로컬 세션에서. 그때까지 B32는 배포 안 됨
+- 검증: npm test / npm run build

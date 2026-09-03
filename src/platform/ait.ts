@@ -42,7 +42,7 @@ const AD_GROUP_ID: string = ''
  * 앱 이름을 확정하면 두 곳을 함께 고친다.
  * 출시 전에는 링크가 유효하지 않을 수 있으므로 실기기 확인이 필요하다
  */
-const MINIAPP_LINK = 'intoss://junglehook'
+const MINIAPP_LINK = 'intoss://naranara'
 
 /** 토스 WebView 안인지 감지 — 브리지가 없으면 isSupported가 false거나 throw */
 export function isTossEnvironment(): boolean {
