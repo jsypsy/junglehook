@@ -37,14 +37,13 @@
 
 **슈팅스타에서 이식한 것** — 모노레포로 묶지 않는다(기존 결정 승계, D-003).
 복사본이므로 원본 쪽 수정이 자동으로 넘어오지 않는다:
-`src/platform/` 전체 · `storage.ts` · `sound.ts`(기동·복구 뼈대 이식, 음색은 날아날아 것으로
-교체 완료 — D-021) · `analytics.ts` · `tools/` ·
+`src/platform/` 전체 · `storage.ts` · `analytics.ts` · `tools/` ·
 `apps-in-toss.config.ts` · `docs/PLATFORM_PLAYBOOK.md`
 
 ## 심사 요건 (코드에 이미 반영돼 있어야 하는 것)
 
 `docs/PLATFORM_PLAYBOOK.md` §3 표를 따른다. 특히: 리워드 광고 사전 로딩,
-광고 중 게임 오디오 직접 mute, 뒤로가기 확인 모달, 점수 제출은 플레이 완료 후.
+뒤로가기 확인 모달, 점수 제출은 플레이 완료 후.
 
 ## 문서 지도
 
