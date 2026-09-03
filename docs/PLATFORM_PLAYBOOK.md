@@ -259,7 +259,13 @@ claude mcp add apps-in-toss-console --transport http \
 | `dashboard_dau` / `dashboard_retention` / `core_metric_list` / `event_log_list` | 출시 후 지표 |
 
 **MCP로 할 수 없는 것**: 라이브 전환([출시하기]), 워크스페이스 약관 동의,
-핵심 지표 생성, 게임 주요화면 업로드. 전부 콘솔 웹에서 사람이 한다.
+**활성 지표** 생성, 게임 주요화면 업로드. 전부 콘솔 웹에서 사람이 한다.
+
+**핵심 지표 (2026-09-04 확인)**: 전환 지표는 MCP `event_act_type_set`(CREATE, `metricType: EVENT_LOG`,
+`eventName`은 `event_log_list`에 이미 수집된 로그)로 만들 수 있다. 대표 지정은 다음 날부터(MAIN_SCHEDULED).
+활성 지표는 MCP로 못 만들고 콘솔 웹 「핵심 지표」에서 — 우리 앱은 "게임 시작"(`*_game_start`)으로 둔다.
+한줄팡·슈팅스타에 걸어 둔 전환 지표: 대표 「광고 보고 이어하기」(`*_ad_reward` rewarded=true) · 서브 「1분 이상 플레이」(`*_deep_play`).
+출시하는 앱마다 같은 둘을 건다 — 계측 이름만 접두어가 다르다.
 
 ---
 
