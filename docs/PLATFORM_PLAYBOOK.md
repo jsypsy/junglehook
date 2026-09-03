@@ -63,6 +63,13 @@ npm run ait:deploy     # ait deploy 래퍼 (tools/deploy.mjs)
   AppleScript). 폰 메시지에서 링크를 탭하면 토스가 열린다. 수신자는 `tools/imessage.local.json`
   `{"to": "+82…"}`(gitignore) 또는 `JGH_IMESSAGE_TO`
 
+**로컬 맥이 없을 때 — GitHub Actions 배포** (`.github/workflows/deploy.yml`, 2026-09-03 도입).
+클라우드 세션은 `apps-in-toss.toss.im`이 네트워크 정책에 막혀 `ait deploy`가 안 되지만(403),
+GitHub 러너는 된다. Actions → "앱인토스 테스트 배포" → Run workflow(브랜치 선택)로 사람이 직접
+누른다 — 자동 실행 없음. 준비물은 리포 시크릿 `AIT_API_KEY`(콘솔에서 발급한 배포용 API 키) 하나.
+결과는 잡 Summary의 URL과 아티팩트 `deploy-qr.png`(폰 카메라로 스캔). 이 경로로 배포하면
+로컬 `tools/latest-deployment.json`은 갱신되지 않는다.
+
 ⚠️ **파라미터 없는 `intoss-private://<app>`은 미출시 상태에서 거부된다**
 ("지금은 서비스를 사용할 수 없어요"). 반드시 `_deploymentId`가 붙은 전체 URL을
 쓴다. 커스텀 스킴은 주소창에 직접 못 넣으므로 `tools/go.html`을 폰 사파리에
@@ -274,9 +281,9 @@ claude mcp add apps-in-toss-console --transport http \
 
 ## 10. 이 프로젝트에 아직 남은 것
 
-- [x] 이름 확정 — 정글훅/junglehook (D-002). 접두어 `jgh.v1`/`jgh_` 반영 완료
+- [x] 이름 확정 — 날아날아/naranara (D-019, 정글훅 D-002 대체). 접두어 `nara.v1`/`nara_` 반영 완료
 - [ ] GRAC 제명 최종 확인 — 신청 직전 GRAC 등급분류 검색으로 동명 재확인
-- [ ] 콘솔에 **새 미니앱 등록** (워크스페이스 72091 아래, appName=junglehook)
+- [x] 콘솔에 **새 미니앱 등록** — naranara (2026-09-03). 옛 junglehook 등록은 무효, B32부터 naranara로 배포
 - [ ] 리워드 광고 지면 발급 → `AD_GROUP_ID` 채우기 (⚠️ 출시 임박 전에는 발급하지
       않는다 — 23일 무노출 삭제)
 - [ ] 등급분류 신청 — 빌드 동결 시점을 미리 정해둔다 (Phase 1 완료 시점 예상)

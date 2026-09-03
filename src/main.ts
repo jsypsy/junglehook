@@ -39,7 +39,7 @@ function superManualVisible(): boolean {
 
 // 개발 전용 디버그 훅 — 크롬 MCP 검수에서 게임 상태를 읽고 자동 플레이할 때 쓴다 (프로덕션 번들에서 제거됨)
 if (import.meta.env.DEV) {
-  ;(window as unknown as { __jgh: unknown }).__jgh = {
+  ;(window as unknown as { __nara: unknown }).__nara = {
     get game() {
       return game
     },

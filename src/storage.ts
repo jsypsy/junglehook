@@ -9,8 +9,8 @@
  * 미러링 시에도 아래 키를 그대로 쓴다
  */
 
-/** 키 접두어 — 앱 이름이 확정되면 함께 바꾼다 (마이그레이션 필요) */
-const NS = 'jgh.v1'
+/** 키 접두어 — 날아날아(D-019). 옛 `jgh.v1`(정글훅 시절 테스트 데이터)은 마이그레이션 없이 버렸다 */
+const NS = 'nara.v1'
 
 export const BEST_KEY = `${NS}.best`
 export const SAVE_KEY = `${NS}.save`

@@ -7,7 +7,7 @@
     { "file": "Continue.dc.html", "x": 2110, "y": 0, "w": 393, "h": 749, "title": "이어하기 광고" }
   ],
   "annotations": [
-    { "id": "brief", "x": 0, "y": -150, "w": 520, "text": "정글훅 · 밝은 카툰 정글 방향\n굵은 외곽선(2px #1f3a2a) · 평면 색 · 둥근 형태 · 카드는 흰 바탕 + 4px 오프셋 그림자.\n글자는 system-ui(웹폰트 없음). 화면은 393×749 실측. 이 캔버스는 설계도 — 확정되면 renderer.ts(Canvas 2D)에 옮겨 그린다." }
+    { "id": "brief", "x": 0, "y": -150, "w": 520, "text": "날아날아 · 밝은 카툰 정글 방향\n굵은 외곽선(2px #1f3a2a) · 평면 색 · 둥근 형태 · 카드는 흰 바탕 + 4px 오프셋 그림자.\n글자는 system-ui(웹폰트 없음). 화면은 393×749 실측. 이 캔버스는 설계도 — 확정되면 renderer.ts(Canvas 2D)에 옮겨 그린다." }
   ],
   "launch": { "view": "canvas" }
 }

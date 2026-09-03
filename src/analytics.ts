@@ -18,7 +18,7 @@
 import type { EventParams, PlatformAdapter } from './platform/adapter'
 
 /** 로그 이름 접두어 — 플랫폼 자동 로그(`appsintoss_*`)와 섞이지 않게 한다 */
-const PREFIX = 'jgh_'
+const PREFIX = 'nara_'
 
 /**
  * "몰입했다"고 볼 플레이 시간(초). 장르가 정해지면 실제 분포를 보고 조정한다 —

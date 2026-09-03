@@ -2,7 +2,7 @@
  * 최신 배포 URL을 내 아이메시지로 보낸다 (개발 전용, 의존성 없음, macOS 전용).
  *
  *   npm run ait:send            → tools/latest-deployment.json의 URL을 전송
- *   npm run ait:send -- 문구     → 앞에 붙일 문구 지정 (기본: "정글훅 테스트 배포")
+ *   npm run ait:send -- 문구     → 앞에 붙일 문구 지정 (기본: "날아날아 테스트 배포")
  *
  * 수신자: 환경변수 JGH_IMESSAGE_TO, 없으면 tools/imessage.local.json의 {"to": "..."} (gitignore —
  * 저장소가 공개라 전화번호를 커밋하지 않는다). 커스텀 스킴(intoss-private://)이라 폰에서 링크를
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const { url, deployedAt } = JSON.parse(readFileSync(join(here, 'latest-deployment.json'), 'utf8'))
-const label = process.argv.slice(2).join(' ') || '정글훅 테스트 배포'
+const label = process.argv.slice(2).join(' ') || '날아날아 테스트 배포'
 const localCfg = join(here, 'imessage.local.json')
 const to =
   process.env.JGH_IMESSAGE_TO ||

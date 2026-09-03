@@ -164,7 +164,7 @@ for si,(sn, fc) in enumerate(rows):
 timeline = f'''{HEAD}
 <div style="width: 560px; height: 749px; box-sizing: border-box; overflow: hidden; padding: 28px; background: #f4f9ea; color: #1f3a2a; display: flex; flex-direction: column; gap: 18px;">
   <div style="display: flex; flex-direction: column; gap: 4px;">
-    <div style="font-size: 12px; letter-spacing: 0.12em; color: #4f7f62;">정글훅 · 하루와 계절</div>
+    <div style="font-size: 12px; letter-spacing: 0.12em; color: #4f7f62;">날아날아 · 하루와 계절</div>
     <div style="font-size: 22px; font-weight: 900;">150m마다 하루가 한 칸, 750m마다 계절이 한 칸</div>
     <div style="font-size: 13px; color: #4f7f62; line-height: 1.5;">시작은 늘 봄 아침. 단계 경계에서 100m에 걸쳐 색을 보간(oklch)한다. 외곽선·플레이어·타깃 링은 고정, 하늘·광원·구름·숲만 바뀐다. 밤·새벽엔 덩굴·앵커에 연한 테두리(halo)를 더해 읽기를 지킨다.</div>
   </div>

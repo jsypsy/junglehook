@@ -1,4 +1,4 @@
-# 정글훅 — 앱인토스 출시용 원버튼 그래플 스윙
+# 날아날아 — 앱인토스 출시용 원버튼 그래플 스윙
 
 **모든 응답과 문서는 한국어로 작성한다.**
 
@@ -29,8 +29,8 @@
 - Vite + TypeScript, **프레임워크 없음** — Canvas 2D 직접 렌더링
 - **런타임 의존성 추가 금지** — 물리·사운드·이펙트 모두 직접 구현.
   꼭 필요하면 추가 전에 사용자에게 먼저 확인받을 것
-- 저장: localStorage(즉시) + 플랫폼 kv 미러링(오리진 변경 유실 대비). 키 접두어 `jgh.v1`
-- 계측: `src/analytics.ts`, 이벤트 접두어 `jgh_` — **처음부터 넣고 간다** (한줄팡 교훈)
+- 저장: localStorage(즉시) + 플랫폼 kv 미러링(오리진 변경 유실 대비). 키 접두어 `nara.v1`
+- 계측: `src/analytics.ts`, 이벤트 접두어 `nara_` — **처음부터 넣고 간다** (한줄팡 교훈)
 - 앱인토스 SDK: `src/platform/index.ts`가 토스 WebView면 AitAdapter, 브라우저면
   MockAdapter 자동 선택. 게임 코드는 PlatformAdapter 인터페이스만 호출 (직접 SDK 호출 금지)
 - `cancelHostTopInset` 보정 필수 (`platform/adapter.ts`, 한줄팡 D-022 실측)
