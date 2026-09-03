@@ -483,3 +483,7 @@
 - `grac-제출/` 전부 B40으로 재생성(zip·해시·스크린샷 13장·PDF 3종). README를 "동결·접수 대기"로, 남은 일은 사용자 4개(동명 재확인·
   영상·등록증·접수)
 - gh-pages 브랜치(orphan, dist + .nojekyll) 푸시 → https://jsypsy.github.io/naranara/ — 내려받아 SHA-256 대조
+
+## 2026-09-03 — GRAC 접수 (B40)
+
+- 사용자가 등급분류 신청 접수. 등급본 = B40(zip SHA `4e64785a…`, gh-pages 동일). 결정까지 게임 내용·gh-pages 무변경
