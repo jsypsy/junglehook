@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#bfe8f5" />
+    <title>날아날아</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #bfe8f5;
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        /* 아이폰: 길게 누르기 콜아웃·더블탭 돋보기(텍스트 선택 루페) 차단 — 캔버스를 텍스트로 취급하지 않게 */
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #game {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        /* 실제 크기는 main.ts resize()가 visualViewport 실측값으로 px 지정 */
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-wGwzO7Nk.js"></script>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+  </body>
+</html>
