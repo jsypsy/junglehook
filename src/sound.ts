@@ -165,85 +165,51 @@ export class SoundPlayer {
     osc.stop(t + dur + 0.02)
   }
 
-  // ── 슈팅 음색 ────────────────────────────────────────────────────────────
+  // ── 날아날아 음색 (BUILD 37, D-021 최소 5개 + UI 탭) ───────────────────
 
-  /**
-   * 발사 — 초당 4~5번 울리므로 아주 짧고 조용하게.
-   * square의 하강 삑이 고전 아케이드 '퓨' 그 소리다
-   */
-  shoot(): void {
-    this.tone(1180, 0, 0.05, 'square', 0.035, 320)
+  /** 로프가 잎에 걸림 — 짧게 튀는 상행 "팅". 잡기가 초당 한 번꼴이라 짧고 가볍게 */
+  grab(): void {
+    this.tone(720, 0, 0.07, 'square', 0.09, 1250)
+    this.tone(1500, 0.02, 0.06, 'triangle', 0.07)
   }
 
-  /** 격추 팝 — 짧은 하강 쿵. 연달아 터져도 뭉개지지 않게 짧게 */
-  kill(): void {
-    this.tone(300, 0, 0.14, 'sawtooth', 0.14, 70)
-    this.tone(620, 0, 0.07, 'square', 0.06, 200)
+  /** 놓음 — 하행 휘익. 이 순간이 게임의 이름이다: 관성 발사가 들려야 손맛이 산다 */
+  release(): void {
+    this.tone(760, 0, 0.2, 'triangle', 0.11, 240)
+    this.tone(380, 0.02, 0.12, 'sine', 0.06, 160)
   }
 
-  /** 보스 격추 — 크고 길게, 파편 잔향까지 */
-  bossKill(): void {
-    this.tone(150, 0, 0.6, 'sine', 0.4, 40)
-    this.tone(240, 0.02, 0.4, 'sawtooth', 0.18, 60)
-    for (let i = 0; i < 5; i++) {
-      this.tone(880 + i * 240, 0.1 + i * 0.06, 0.16, 'triangle', 0.07, 380 + i * 80)
+  /** 슈퍼 찬스 열림 — 히트스톱과 함께 울리는 상행 아르페지오 + 낮은 울림 */
+  chance(): void {
+    for (const [f, i] of [[880, 0], [1109, 1], [1319, 2], [1760, 3]] as const) {
+      this.tone(f, 0.03 + i * 0.07, 0.22, 'triangle', 0.13)
     }
+    this.tone(220, 0, 0.45, 'sine', 0.2, 110)
   }
 
-  /** 보스 등장 경보 — 낮은 2음 반복 */
-  bossWarn(): void {
-    for (let i = 0; i < 3; i++) {
-      this.tone(220, i * 0.24, 0.11, 'square', 0.12)
-      this.tone(165, i * 0.24 + 0.12, 0.11, 'square', 0.12)
-    }
+  /** 게이지 성공 — 로켓 점화: 낮은 톱니가 치솟고 끝에 삑 */
+  dash(): void {
+    this.tone(160, 0, 0.42, 'sawtooth', 0.15, 980)
+    this.tone(90, 0, 0.3, 'sine', 0.22, 60)
+    this.tone(1320, 0.34, 0.12, 'square', 0.08, 1760)
   }
 
-  /** 윙맨 격추당함 — 짧고 씁쓸한 하강 */
-  miniDown(): void {
-    this.tone(760, 0, 0.16, 'sawtooth', 0.16, 160)
-    this.tone(380, 0.05, 0.12, 'square', 0.09, 120)
+  /** 게이지 실패 — 김 빠지는 하행 버즈. 억울하지 않게 짧고 가볍게 */
+  dashFail(): void {
+    this.tone(320, 0, 0.16, 'square', 0.1, 150)
+    this.tone(180, 0.1, 0.16, 'square', 0.08, 90)
   }
 
-  /** 실드로 한 번 막았다 — 금속성 챙 */
-  shieldHit(): void {
-    this.tone(1400, 0, 0.09, 'square', 0.16, 900)
-    this.tone(700, 0.02, 0.16, 'triangle', 0.12)
+  /** 사망 — 추락·잡힘 공통: 둔탁한 쿵 + 하행 세 음 (결과 카드 "끝"과 같은 문법) */
+  die(): void {
+    this.tone(120, 0, 0.3, 'sine', 0.3, 45)
+    this.tone(330, 0.05, 0.16, 'sawtooth', 0.11)
+    this.tone(262, 0.19, 0.16, 'sawtooth', 0.11)
+    this.tone(196, 0.33, 0.3, 'sawtooth', 0.11)
   }
 
-  /** 스테이지 클리어 — 상행 팡파르 */
-  stageClear(): void {
-    const base = 523
-    for (const [mul, i] of [
-      [1, 0],
-      [1.26, 1],
-      [1.5, 2],
-      [2, 3],
-    ] as const) {
-      this.tone(base * mul, 0.04 + i * 0.08, 0.24, 'square', 0.12)
-    }
-    this.tone(131, 0.04, 0.4, 'sine', 0.22)
-  }
-
-  /** 카드 선택 — 확정 딩 */
-  cardPick(): void {
-    this.tone(660, 0, 0.08, 'triangle', 0.16)
-    this.tone(990, 0.06, 0.14, 'triangle', 0.13)
-  }
-
-  /** 부활 — 파워업 상행 슬라이드 */
-  revive(): void {
-    this.tone(200, 0, 0.35, 'square', 0.14, 1200)
-    this.tone(1568, 0.3, 0.18, 'triangle', 0.1)
-  }
-
-  /** UI 탭 */
+  /** UI 탭 (소리 켜기 확인음) */
   button(): void {
     this.tone(440, 0, 0.06, 'triangle', 0.15)
-  }
-
-  gameOver(): void {
-    this.tone(330, 0, 0.18, 'sawtooth', 0.16)
-    this.tone(262, 0.14, 0.18, 'sawtooth', 0.16)
-    this.tone(196, 0.28, 0.32, 'sawtooth', 0.16)
   }
 }

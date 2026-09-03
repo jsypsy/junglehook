@@ -453,3 +453,12 @@
   촬영 도구 `tools/grac-shots.mjs`(헤드리스 크롬, `__nara` 위에 `__shot` 도우미), `tools/make-pdf.mjs`. 초안은 합류 전
   B32 빌드 기준 — 동결 때 README의 체크리스트대로 zip·해시·스크린샷·PDF를 다시 뽑는다. 제출 빌드에 효과음이 없다고
   적혀 있으니 효과음을 넣으면 5.6항을 고친다
+
+## 2026-09-03 — 효과음 5종 + 소리 토글 (BUILD 37)
+
+- D-021. `core/game.ts`에 이벤트 큐(`events`) — grab·release·chance·dash·dashFail·die. main이 `playEvents()`로 비운다.
+  `sound.ts`는 슈팅 음색을 걷어내고 6개 메서드(5종 + 버튼). 광고 전후 mute, visibilitychange 정지, 첫 제스처 unlock
+- 소리 토글 칩 `drawSoundToggle` — 시작 화면·결과 카드 왼쪽 아래, 44px 히트 영역. 사망 직후 잠금과 무관하게 반응
+- 테스트 58개(+3: 이벤트 순서·허공 놓기 무음·찬스는 grab 뒤). 헤드리스 크롬으로 B37 스크린샷 14장 재촬영(장면 14 소리 끄기)
+- GRAC 초안을 B37로 갱신: zip·해시·용량(121,667바이트)·설명서 5.6항(효과음 표)·장면 14·개요 문안·README
+- **실제 소리는 아직 폰에서 못 들었다** — 헤드리스 캡처는 무음. B37 배포 후 폰에서 음량·음색 판정

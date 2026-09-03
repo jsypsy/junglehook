@@ -71,8 +71,8 @@
   <tr><td class="k">확률형 아이템</td><td class="none">없음 (유료 요소가 일절 없다 — 11항 참조)</td></tr>
   <tr><td class="k">아이템</td><td class="none">없음 (5.3항 참조)</td></tr>
   <tr><td class="k">게임 내 재화</td><td class="none">없음 (7항 참조)</td></tr>
-  <tr><td class="k">게임물 용량</td><td>116,191 바이트 (약 0.11 MB) — 9항 참조</td></tr>
-  <tr><td class="k">제출 기준 빌드</td><td>B32. 화면 우하단에 <span class="mono">B32</span>로 표시된다</td></tr>
+  <tr><td class="k">게임물 용량</td><td>121,667 바이트 (약 0.12 MB) — 9항 참조</td></tr>
+  <tr><td class="k">제출 기준 빌드</td><td>B37. 화면 우하단에 <span class="mono">B37</span>로 표시된다</td></tr>
 </table>
 
 <h2>2. 게임 실행 방법</h2>
@@ -133,6 +133,7 @@
   <tr><td>다음 잎 잡기</td><td>날아가는 동안 <strong>다시 누른다</strong>. 닿는 범위 안의 잎에 로프가 걸린다. 미리 누르고 있어도 잎이 닿는 순간 잡힌다</td></tr>
   <tr><td>슈퍼 대시</td><td>「슈퍼 찬스!」가 열린 잎에서 <strong>꾹 누른 채 3바퀴</strong> 돈 뒤, 화면 위 게이지의 <strong>노란 구간에서 손을 뗀다</strong> (5.2항)</td></tr>
   <tr><td>다시 하기 / 이어하기</td><td>게임 오버 화면의 [다시 하기] · [광고 보고 이어하기] 버튼을 탭</td></tr>
+  <tr><td>소리 켜기·끄기</td><td>시작 화면과 결과 화면 왼쪽 아래의 <strong>[소리 켜짐 / 소리 꺼짐]</strong> 칩을 탭 (5.6항·장면 14)</td></tr>
   <tr><td>안내 카드 끄기</td><td>「슈퍼 찬스!」 카드의 [다시 안 보기]를 탭하면 다음부터 카드 대신 짧은 배지만 표시된다</td></tr>
 </table>
 
@@ -198,9 +199,18 @@
 </ul>
 
 <h3>5.6 음향</h3>
-<p>제출 빌드에는 <strong class="none">효과음·배경음악이 없다</strong> (무음). 음원 파일도 없다.
-추후 효과음을 넣는 경우에도 코드로 합성한 짧은 효과음만 쓰고 배경음악은 두지 않으며,
-이용자가 언제든 끌 수 있게 하고 광고가 재생되는 동안에는 게임 소리를 내지 않는다.</p>
+<p>효과음은 아래 <strong>5종이 전부</strong>이며, 모두 <strong>코드로 합성해 재생하므로 별도의 음원 파일이 없다.</strong>
+<strong class="none">배경음악은 없다.</strong> 시작 화면·결과 화면의 [소리 켜짐 / 소리 꺼짐] 칩으로 언제든 끌 수 있고,
+앱이 백그라운드로 전환되면 즉시 멈추며, 광고가 재생되는 동안에는 게임 소리를 내지 않는다.</p>
+
+<table>
+  <tr><th style="width:130px">효과음</th><th>소리</th></tr>
+  <tr><td>잎 잡기</td><td>로프가 걸릴 때 짧게 튀는 "팅"</td></tr>
+  <tr><td>놓기</td><td>손을 떼는 순간의 하행 "휘익"</td></tr>
+  <tr><td>슈퍼 찬스</td><td>찬스가 열릴 때의 상행 아르페지오</td></tr>
+  <tr><td>게이지 성공 / 실패</td><td>성공하면 로켓 점화음, 실패하면 짧은 하행 버즈</td></tr>
+  <tr><td>사망</td><td>둔탁한 "쿵"과 하행 세 음. 비명·타격음 등 신체적 표현이 없다</td></tr>
+</table>
 
 <h2>6. 게임 진행 흐름</h2>
 <ol>
@@ -236,7 +246,7 @@
     <span class="t">장면 1. 시작 화면</span>
     제목 「날아날아」, 조작 방법을 보여주는 반복 애니메이션 카드(「꾹 누르면 매달리고 → 떼면 날아가요 →
     다시 누르면 다음 잎으로!」), [탭해서 시작]. 왼쪽 위에 현재 일수(0일)와 최고 기록(★),
-    우하단에 빌드 표식 <span class="mono">B32</span>가 표시된다.
+    왼쪽 아래에 [소리 켜짐] 칩, 우하단에 빌드 표식 <span class="mono">B37</span>가 표시된다.
   </figcaption>
 </figure>
 
@@ -351,6 +361,15 @@
   </figcaption>
 </figure>
 
+<figure>
+  <img src="{{IMG:14-소리끄기}}" alt="소리 끄기" />
+  <figcaption>
+    <span class="t">장면 14. 소리 끄기</span>
+    왼쪽 아래 칩이 [소리 꺼짐]으로 바뀐 상태. 시작 화면과 결과 화면에서 이용자가 언제든 켜고 끌 수 있으며
+    설정은 단말에 저장된다.
+  </figcaption>
+</figure>
+
 <div class="note">
   <strong>전투 장면에 대하여</strong> — 공격·무기·적 처치 개념이 없다. 유일한 위험 요소인 벽괴물은
   닿으면 게임이 끝나는 장애물이며, 이용자가 벽괴물을 공격하거나 벽괴물이 이용자를 가격하는 장면은
@@ -360,15 +379,15 @@
 <h2>9. 게임물 용량 (요약)</h2>
 
 <p>이용자가 게임을 플레이하기 위해 내려받는 파일은 <strong>2개가 전부</strong>이며,
-합계 <strong>116,191 바이트(약 0.11 MB)</strong> 다. 설치 파일이나 추가 내려받기가 없다.
-이미지·음원·글꼴·동영상 파일이 하나도 없다(그래픽은 코드로 직접 그린다).
+합계 <strong>121,667 바이트(약 0.12 MB)</strong> 다. 설치 파일이나 추가 내려받기가 없다.
+이미지·음원·글꼴·동영상 파일이 하나도 없다(그래픽은 코드로 직접 그리고, 소리는 코드로 합성한다).
 산정 근거와 실측 방법은 별도 문서 <strong>「게임물 용량 확인자료」</strong>에 기재했다.</p>
 
 <table>
   <tr><th>파일</th><th style="width:110px">크기(바이트)</th><th style="width:170px">내용</th></tr>
   <tr><td class="mono">index.html</td><td class="mono">1,332</td><td>게임을 여는 시작 문서</td></tr>
-  <tr><td class="mono">assets/index-DlXaG58j.js</td><td class="mono">114,859</td><td>게임 로직·물리·화면 그리기 전체</td></tr>
-  <tr><td><strong>합계 (2개 파일)</strong></td><td class="mono"><strong>116,191</strong></td><td>약 113.5 KB / 0.11 MB</td></tr>
+  <tr><td class="mono">assets/index-DHz8_O-l.js</td><td class="mono">120,335</td><td>게임 로직·물리·화면 그리기·소리 합성 전체</td></tr>
+  <tr><td><strong>합계 (2개 파일)</strong></td><td class="mono"><strong>121,667</strong></td><td>약 118.8 KB / 0.12 MB</td></tr>
 </table>
 
 <h2>10. 수익 모델</h2>
@@ -421,7 +440,7 @@
   <li>게임 이용 중 <strong>개인정보를 직접 수집하지 않는다.</strong> 이용 통계 전송에는 플랫폼이
       제공하는 비식별 식별키만 사용한다.</li>
   <li><strong>이용자 간 대화·메시지 기능이 없어</strong> 부적절한 소통이 발생할 여지가 없다.</li>
-  <li>제출 빌드는 무음이며(5.6항), 소리를 넣는 경우에도 이용자가 언제든 끌 수 있게 한다.</li>
+  <li>음향은 이용자가 <strong>언제든 직접 끌 수 있으며</strong>(장면 14), 앱이 백그라운드로 전환되면 즉시 멈춘다.</li>
   <li>제한 시간이나 접속 유지를 강요하는 장치(출석 보상, 시간제 재화 회복 등)가 없다.
       한 판은 보통 1~2분 안에 끝나는 짧은 플레이다.</li>
   <li>광고 이어하기는 <strong>한 판에 최대 2회로 제한</strong>되며, 광고 없이 [다시 하기]가 항상 함께 제공되어
@@ -444,7 +463,7 @@
   <tr><td>게임 내 재화 유무 및 종류</td><td class="none">없음</td><td>7항 (항목별 명시)</td></tr>
   <tr><td>게임 조작 방법</td><td class="yes">있음</td><td>4항</td></tr>
   <tr><td>전투 장면</td><td class="none">없음</td><td>공격·무기·전투 개념이 없다 (8항 말미)</td></tr>
-  <tr><td>주요 진행 장면 설명·스크린샷</td><td class="yes">있음</td><td>8항 (13장)</td></tr>
+  <tr><td>주요 진행 장면 설명·스크린샷</td><td class="yes">있음</td><td>8항 (14장)</td></tr>
   <tr><td>게임 실행 방법 / 웹 URL</td><td class="yes">있음</td><td>2항 · 별도 문서 「게임 실행 웹 URL 안내」</td></tr>
   <tr><td>게임물 용량</td><td class="yes">있음</td><td>9항 · 별도 문서 「게임물 용량 확인자료」</td></tr>
   <tr><td>게임 플레이 영상</td><td class="yes">있음</td><td>별도 첨부 (<span class="mono">04_게임플레이영상_날아날아.mp4</span>)</td></tr>
@@ -453,9 +472,9 @@
   <tr><td>점수 획득 방법</td><td class="yes">있음</td><td>5.4항</td></tr>
   <tr><td>경품 배출 / 게임 종료</td><td class="none">해당 없음</td><td>아케이드 게임물이 아니다. 경품 배출 장치가 없다 (7항)</td></tr>
   <tr><td>Cheat 코드</td><td class="none">없음</td><td>개발자용 디버그 훅은 배포본에서 제거되어 게임 안에서 치트·디버그 명령을 쓸 수 없다</td></tr>
-  <tr><td>초상권·라이센스 서류</td><td class="none">해당 없음</td><td>외부 저작물·실존 인물을 사용하지 않는다. 그래픽·글꼴·소리 파일이 없다</td></tr>
+  <tr><td>초상권·라이센스 서류</td><td class="none">해당 없음</td><td>외부 저작물·실존 인물을 사용하지 않는다. 그래픽·글꼴·음원 파일이 없다</td></tr>
 </table>
 
 <footer>
-  게임물내용설명서 — 날아날아 · 토니소프트 · 2026년 9월 3일 작성 · 제출 기준 빌드 B32
+  게임물내용설명서 — 날아날아 · 토니소프트 · 2026년 9월 3일 작성 · 제출 기준 빌드 B37
 </footer>

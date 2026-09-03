@@ -37,8 +37,8 @@
 
 **슈팅스타에서 이식한 것** — 모노레포로 묶지 않는다(기존 결정 승계, D-003).
 복사본이므로 원본 쪽 수정이 자동으로 넘어오지 않는다:
-`src/platform/` 전체 · `storage.ts` · `sound.ts`(기동·복구 뼈대만 유효, 효과음
-메서드는 슈팅스타 것이라 게임 구현 때 교체) · `analytics.ts` · `tools/` ·
+`src/platform/` 전체 · `storage.ts` · `sound.ts`(기동·복구 뼈대 이식, 음색은 날아날아 것으로
+교체 완료 — D-021) · `analytics.ts` · `tools/` ·
 `apps-in-toss.config.ts` · `docs/PLATFORM_PLAYBOOK.md`
 
 ## 심사 요건 (코드에 이미 반영돼 있어야 하는 것)

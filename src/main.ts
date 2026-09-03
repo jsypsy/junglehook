@@ -6,7 +6,8 @@ import { bindPointer } from './input/pointer'
 import { createPlatform } from './platform'
 import { cancelHostTopInset } from './platform/adapter'
 import { Renderer } from './render/renderer'
-import { loadBest, loadSuperManual, saveBest, saveSuperManual } from './storage'
+import { SoundPlayer } from './sound'
+import { isMuted, loadBest, loadSuperManual, saveBest, saveMuted, saveSuperManual } from './storage'
 
 const SIM_STEP = 1 / 120
 /** 사망 직후 오입력으로 바로 재시작되는 것 방지 (초) */
@@ -17,6 +18,40 @@ const canvas = document.getElementById('game') as HTMLCanvasElement
 const ctx = canvas.getContext('2d')!
 const renderer = new Renderer(ctx)
 const analytics = new Analytics(platform)
+/** 효과음 (BUILD 37, D-021): 기동·복구 뼈대는 한줄팡 검증본. iOS는 제스처 안에서만 오디오 시작 → down/up 양쪽에서 unlock */
+const sound = new SoundPlayer()
+let muted = isMuted()
+sound.setMuted(muted)
+canvas.addEventListener('pointerdown', () => sound.unlock())
+canvas.addEventListener('pointerup', () => sound.unlock())
+// 백그라운드 전환 시 즉시 정지 (심사 요건) — 복귀 후 실제 기동은 다음 제스처의 unlock이 한다
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) sound.suspendForBackground()
+  else sound.markSuspect()
+})
+window.addEventListener('pageshow', () => sound.markSuspect())
+/** 소리 토글 — 시작 화면·결과 카드의 칩. 켜는 순간이 제스처 안이라 확인음이 곧장 들린다 */
+function toggleSound(): void {
+  muted = !muted
+  saveMuted(muted)
+  sound.setMuted(muted)
+  if (!muted) {
+    sound.unlock()
+    sound.button()
+  }
+}
+/** core가 남긴 이벤트를 소리로 — 매 틱 비운다 */
+function playEvents(): void {
+  for (const ev of game.events) {
+    if (ev === 'grab') sound.grab()
+    else if (ev === 'release') sound.release()
+    else if (ev === 'chance') sound.chance()
+    else if (ev === 'dash') sound.dash()
+    else if (ev === 'dashFail') sound.dashFail()
+    else if (ev === 'die') sound.die()
+  }
+  game.events.length = 0
+}
 /** 리워드 광고 진행 중 — 버튼 잠금·"불러오는 중" 표시 */
 let adBusy = false
 
@@ -93,11 +128,14 @@ async function tryContinue(): Promise<void> {
   if (adBusy || game.phase !== 'dead' || continuesLeft(game) <= 0) return
   adBusy = true
   let rewarded = false
+  // 심사 요건: 리워드 광고 재생 중 게임 오디오 직접 mute — 광고 전후로 반드시 태운다 (플레이북 §3)
+  sound.setMuted(true)
   try {
     rewarded = (await platform.showRewardedAd('continue')).rewarded
   } catch {
     rewarded = false
   }
+  sound.setMuted(muted)
   analytics.adReward('continue', rewarded)
   adBusy = false
   if (!rewarded || game.phase !== 'dead') return
@@ -112,6 +150,11 @@ async function tryContinue(): Promise<void> {
 bindPointer(
   canvas,
   (x, y) => {
+    // 소리 토글은 시작 화면·결과 카드에서 언제나 (사망 직후 잠금과 무관)
+    if ((game.phase === 'ready' || game.phase === 'dead') && renderer.hitSoundButton(x, y)) {
+      toggleSound()
+      return
+    }
     if (game.phase === 'dead') {
       if (performance.now() - deadAt < RESTART_LOCK * 1000) return
       const hit = renderer.hitDeathButton(x, y)
@@ -148,6 +191,7 @@ function tick(now: number, dt: number): void {
       update(game, SIM_STEP)
       acc -= SIM_STEP
     }
+    playEvents()
     if ((game.phase as string) === 'dead') {
       deadAt = now
       if (!bestSaved) {
@@ -186,7 +230,7 @@ function tick(now: number, dt: number): void {
   if (!pendingReady) manualCounted = false
   renderer.draw(
     game, cam, best, w, h, insets.top, preset,
-    { continuesLeft: continuesLeft(game), maxContinues: TUNING.maxContinues, adBusy },
+    { continuesLeft: continuesLeft(game), maxContinues: TUNING.maxContinues, adBusy, muted },
     { manual: manualCounted, hide: superManual.hide }, // 이번 찬스에 카드가 떴으면 도전 시작까지 유지 (체크를 되돌릴 수 있게)
   )
 }

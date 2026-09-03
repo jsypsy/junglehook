@@ -483,3 +483,35 @@ describe('game', () => {
     })
   })
 })
+
+describe('효과음 이벤트 (BUILD 37) — core는 사실만 남기고 호출부가 비운다', () => {
+  it('잡기·놓기·추락이 순서대로 쌓인다', () => {
+    const g = createGame(8)
+    press(g)
+    grabAnchor(g, 0)
+    expect(g.events).toEqual(['grab'])
+    g.events.length = 0
+    releaseInput(g)
+    expect(g.events).toEqual(['release'])
+    g.events.length = 0
+    g.body.pos.y = TUNING.killY + 1
+    update(g, STEP)
+    expect(g.phase).toBe('dead')
+    expect(g.events).toEqual(['die'])
+  })
+
+  it('허공에서 놓으면 release 이벤트가 없다 (로프를 쥔 적이 없다)', () => {
+    const g = createGame(8)
+    press(g)
+    g.holding = false
+    releaseInput(g)
+    expect(g.events).toEqual([])
+  })
+
+  it('찬스 잎을 잡으면 grab 뒤에 chance가 붙는다', () => {
+    const g = createGame(8)
+    press(g)
+    grabToChance(g)
+    expect(g.events).toEqual(['grab', 'chance'])
+  })
+})

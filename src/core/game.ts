@@ -15,6 +15,9 @@ import { TUNING } from './tuning'
 
 export type Phase = 'ready' | 'playing' | 'dead'
 
+/** 효과음이 붙는 순간들 — core는 소리를 모르고 사실만 남긴다. main이 매 틱 비운다 (BUILD 37) */
+export type GameEvent = 'grab' | 'release' | 'chance' | 'dash' | 'dashFail' | 'die'
+
 export interface Game {
   seed: number
   phase: Phase
@@ -36,6 +39,8 @@ export interface Game {
   threatX: number
   /** 사망 원인 — 추락(내가 놓친 것) / 잡힘(내가 지체한 것) */
   cause: 'fall' | 'caught' | null
+  /** 이번 틱에 일어난 일 — 호출부가 읽고 비운다 */
+  events: GameEvent[]
 }
 
 export interface SonicState {
@@ -144,6 +149,7 @@ export function createGame(seed: number): Game {
     timeSec: 0,
     threatX: TUNING.startPos.x - TUNING.threat.headStartPx,
     cause: null,
+    events: [],
   }
 }
 
@@ -171,6 +177,7 @@ function updateThreat(g: Game, dt: number): void {
   if (g.body.pos.x <= g.threatX) {
     g.phase = 'dead'
     g.cause = 'caught'
+    g.events.push('die')
     g.holding = false
     release(g.body)
   }
@@ -286,16 +293,19 @@ export function releaseInput(g: Game): void {
     if (!hit) {
       // 타이밍 실패 — 일반 릴리스, 충전은 사라진다
       release(g.body)
+      g.events.push('dashFail')
       return
     }
     // 소닉 대시 시작 — 규칙 무시: 중력·잡기 없이 앞으로 직진
     release(g.body)
+    g.events.push('dash')
     s.dashing = true
     s.dashLeftPx = TUNING.sonic.dashMeters * TUNING.pxPerMeter
     s.uses += 1
     g.body.vel = { x: TUNING.sonic.dashSpeed, y: 0 }
     return
   }
+  if (g.body.anchor) g.events.push('release')
   release(g.body)
 }
 
@@ -338,7 +348,7 @@ export function update(g: Game, dt: number): void {
   g.targetIdx = g.body.anchor ? null : selectTarget(g)
   const target = g.targetIdx !== null ? g.field.anchors[g.targetIdx] : undefined
   if (g.holding && !g.body.anchor && target) {
-    grab(g.body, target, TUNING.reach)
+    if (grab(g.body, target, TUNING.reach)) g.events.push('grab')
   }
   // 홀드 중 로프 감기 — 윈치가 몸을 앵커 쪽으로 당긴다 (외부에서 일을 넣는 연산이라 투영과 분리, D-006).
   // 이게 없으면 매 사이클 가라앉기만 하다 앵커선이 reach 밖으로 벗어난다 (계측으로 확인)
@@ -361,6 +371,7 @@ export function update(g: Game, dt: number): void {
         s.freezeT = TUNING.sonic.freezeSec
         s.pending = true
         s.sweetCenter = sonicSweetCenter(g, stage)
+        g.events.push('chance')
         // 폭풍은 찬스에 놀라 물러난다 — 매달려 충전하는 동안(chance) 전진·잡힘 판정 모두 멈춘다 (BUILD 21)
         g.threatX = Math.min(g.threatX, g.body.anchor.x - TUNING.threat.chanceBackPx)
       }
@@ -383,6 +394,7 @@ export function update(g: Game, dt: number): void {
   if (g.body.pos.y > TUNING.killY) {
     g.phase = 'dead'
     g.cause = 'fall'
+    g.events.push('die')
     g.holding = false
     release(g.body)
     return

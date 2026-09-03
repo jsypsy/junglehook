@@ -99,6 +99,8 @@ const SCENES = [
   { file: '11-슈퍼대시', js: '__shot.dash(230)', wait: 1300 },
   { file: '12-게임오버-이어하기', js: '__shot.die(370)', wait: 2400 },
   { file: '13-게임오버-다시하기', js: '__shot.die(1120, 2)', wait: 2400 },
+  // 소리 끄기 — 저장값은 모듈 로드 때 읽으므로 심고 reload. 마지막 장면이라 뒤에 영향 없다
+  { file: '14-소리끄기', js: "localStorage.setItem('nara.v1.muted','1'); location.reload()", wait: 2500 },
 ]
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -192,7 +194,7 @@ try {
   await S('Page.navigate', { url: `http://127.0.0.1:${PORT}/` })
   await sleep(2500)
   // 최고 기록을 심어 HUD의 최고 칩을 실제 플레이처럼 만든다 (저장은 미터, 표시는 일수 — 1234m = 450일)
-  await evalJs("localStorage.setItem('nara.v1.best','1234'); localStorage.removeItem('nara.v1.super-manual2')", 'seed')
+  await evalJs("localStorage.setItem('nara.v1.best','1234'); localStorage.removeItem('nara.v1.super-manual2'); localStorage.setItem('nara.v1.muted','0')", 'seed')
   await S('Page.reload')
   await sleep(2500)
   await evalJs(HELPERS, 'helpers')

@@ -44,7 +44,7 @@
 
 <h2>1. 산정 결과</h2>
 
-<div class="big">게임물 이용에 필요한 총 용량 = 116,191 바이트 (약 113.5 KB / 0.11 MB)</div>
+<div class="big">게임물 이용에 필요한 총 용량 = 121,667 바이트 (약 118.8 KB / 0.12 MB)</div>
 
 <p>본 게임물은 웹브라우저에서 실행되는 게임으로, 이용자가 게임을 플레이하기 위해
 내려받는 파일은 아래 <strong>2개가 전부</strong>다. 설치 파일이나 추가 내려받기가 없다.</p>
@@ -63,14 +63,14 @@
     <td>게임을 여는 시작 문서</td>
   </tr>
   <tr>
-    <td class="mono">assets/index-DlXaG58j.js</td>
-    <td class="num">114,859</td>
-    <td>게임 로직·물리·화면 그리기 전체</td>
+    <td class="mono">assets/index-DHz8_O-l.js</td>
+    <td class="num">120,335</td>
+    <td>게임 로직·물리·화면 그리기·소리 합성 전체</td>
   </tr>
   <tr class="total">
     <td>합계 (2개 파일)</td>
-    <td class="num">116,191</td>
-    <td>약 113.5 KB / 0.11 MB</td>
+    <td class="num">121,667</td>
+    <td>약 118.8 KB / 0.12 MB</td>
   </tr>
 </table>
 
@@ -82,7 +82,7 @@
 <table>
   <tr><td class="k">그래픽</td><td>주인공·잎·로프·나무·구름·태양·벽괴물·글자를 모두 <strong>코드로 직접 그린다</strong>(HTML5 Canvas 2D). 도형과 선을 프로그램이 매 프레임 그리는 방식이며, 이미지 파일(PNG·JPG·SVG 등)이 존재하지 않는다</td></tr>
   <tr><td class="k">글꼴</td><td>화면의 글자는 단말에 이미 설치된 <strong>시스템 글꼴</strong>로 그린다. 글꼴 파일을 내려받지 않는다</td></tr>
-  <tr><td class="k">음향</td><td>제출 빌드에는 <strong>효과음·배경음악이 없다.</strong> 음원 파일(MP3·WAV 등)이 존재하지 않는다</td></tr>
+  <tr><td class="k">음향</td><td>효과음 5종을 모두 <strong>코드로 합성해 재생한다</strong>(Web Audio API). 음원 파일(MP3·WAV 등)이 존재하지 않는다. 배경음악은 없다</td></tr>
   <tr><td class="k">동영상</td><td>게임 내 동영상·컷신이 없다</td></tr>
   <tr><td class="k">추가 내려받기</td><td>플레이 중 서버에서 콘텐츠를 추가로 내려받는 구조가 없다. 잎의 배치 등은 단말 안에서 계산한다</td></tr>
 </table>
@@ -97,12 +97,12 @@ HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
 Content-Length: 1332
 
-$ curl -sSI https://jsypsy.github.io/naranara/assets/index-DlXaG58j.js
+$ curl -sSI https://jsypsy.github.io/naranara/assets/index-DHz8_O-l.js
 HTTP/1.1 200 OK
 Content-Type: application/javascript; charset=utf-8
-Content-Length: 114859
+Content-Length: 120335
 
-합계 = 1,332 + 114,859 = 116,191 바이트</pre>
+합계 = 1,332 + 120,335 = 121,667 바이트</pre>
 
 <p>또는 웹브라우저에서 위 주소를 연 뒤 <strong>개발자도구(F12) → 네트워크(Network) 탭</strong>을
 열고 새로고침하면, 내려받는 파일이 위 2개뿐이고 합계가 동일함을 확인하실 수 있다.</p>
@@ -117,16 +117,16 @@ Content-Length: 114859
   <tr><th style="width:180px">파일</th><th>SHA-256</th></tr>
   <tr>
     <td class="mono">index.html<br />(1,332 바이트)</td>
-    <td class="mono">e7b1e0dd7eb1e5682d364ca5cbef5c1fffa22af50a89c35042dc807f9a0d28fb</td>
+    <td class="mono">4cb5323e50a9754641f0e35d14659e7bd9c8f9f0d5b30e4e5c924c5f28c75471</td>
   </tr>
   <tr>
-    <td class="mono">assets/index-DlXaG58j.js<br />(114,859 바이트)</td>
-    <td class="mono">85979b75a08c31c8e503782f066c448de7c8a4500b2766dc5dbffa6b79b55eea</td>
+    <td class="mono">assets/index-DHz8_O-l.js<br />(120,335 바이트)</td>
+    <td class="mono">e2d5972d80d63d073edb38f369ca7a735db1d564d97d19beb37c8d739ae8f593</td>
   </tr>
 </table>
 
 <p>제출한 zip 파일 자체의 SHA-256은
-<span class="mono">d5bcbe06c4b3068a8cca0f7dd93efba327f2ff855c301b4e74cca5f0c93c22f6</span> 이며,
+<span class="mono">1d4403082aef36e8dc462413ce71169ebe53e5701e8c0d559efdbdf9960566f7</span> 이며,
 zip 안에는 위 2개 파일 외에 다른 파일이 들어 있지 않다.</p>
 
 <h2>6. 참고 — 저장 공간 및 외부 스크립트</h2>
@@ -134,7 +134,7 @@ zip 안에는 위 2개 파일 외에 다른 파일이 들어 있지 않다.</p>
 <table>
   <tr>
     <td class="k">단말 저장 용량</td>
-    <td>최고 기록(전진 거리), 안내 카드를 다시 보지 않기로 한 설정을 브라우저 저장소(localStorage)에 기록한다.
+    <td>최고 기록(전진 거리), 소리 켜짐 여부, 안내 카드를 다시 보지 않기로 한 설정을 브라우저 저장소(localStorage)에 기록한다.
         저장되는 데이터는 <strong>1 KB 미만</strong>의 텍스트다</td>
   </tr>
   <tr>
@@ -149,7 +149,7 @@ zip 안에는 위 2개 파일 외에 다른 파일이 들어 있지 않다.</p>
 
 <h2>7. 요약</h2>
 <ul>
-  <li>게임물 이용에 필요한 용량: <strong>116,191 바이트 (약 0.11 MB)</strong></li>
+  <li>게임물 이용에 필요한 용량: <strong>121,667 바이트 (약 0.12 MB)</strong></li>
   <li>구성: HTML 1개 + JavaScript 1개, 총 2개 파일</li>
   <li>이미지·음원·글꼴 등 별도 리소스 파일 <strong>없음</strong></li>
   <li>설치 파일·추가 내려받기 <strong>없음</strong></li>

@@ -18,6 +18,8 @@ export interface DeathUi {
   continuesLeft: number
   maxContinues: number
   adBusy: boolean
+  /** 소리 꺼짐 — 시작 화면·결과 카드의 토글 칩 표시 (BUILD 37) */
+  muted: boolean
 }
 
 /** 슈퍼 도전 대기 화면이 필요로 하는 바깥 상태 (BUILD 24) */
@@ -160,6 +162,8 @@ export class Renderer {
   private deathButtons: { continue: Rect | null; retry: Rect | null } = { continue: null, retry: null }
   /** 슈퍼 매뉴얼 카드의 "다시 안 보기" 영역 — 보이는 동안만 */
   private superHideBox: Rect | null = null
+  /** 소리 토글 칩 영역 — 시작 화면·결과 카드에서만 */
+  private soundBox: Rect | null = null
   /** 슈퍼 도전 대기가 시작된 시각 (카드 등장 애니메이션 기준) */
   private pendingAt = -1e9
   private wasPending = false
@@ -174,6 +178,12 @@ export class Renderer {
   hitSuperPrompt(x: number, y: number): 'hide' | null {
     const r = this.superHideBox
     return r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h ? 'hide' : null
+  }
+
+  /** 소리 토글 칩 히트테스트 (화면 px) — 시작 화면·결과 카드에서만 살아 있다 */
+  hitSoundButton(x: number, y: number): boolean {
+    const b = this.soundBox
+    return !!b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h
   }
 
   /** 결과 카드의 버튼 히트테스트 (화면 px) */
@@ -192,7 +202,7 @@ export class Renderer {
     h: number,
     topInset: number,
     preset: string | null = null,
-    ui: DeathUi = { continuesLeft: 0, maxContinues: 0, adBusy: false },
+    ui: DeathUi = { continuesLeft: 0, maxContinues: 0, adBusy: false, muted: false },
     superUi: SuperUi = { manual: false, hide: false },
   ): void {
     const ctx = this.ctx
@@ -204,6 +214,7 @@ export class Renderer {
       this.death = null
       this.deathButtons = { continue: null, retry: null }
     }
+    this.soundBox = null
     const dead = this.death
     const deadT = dead ? now - dead.t0 : 0
 
@@ -226,7 +237,7 @@ export class Renderer {
       ctx.restore()
       this.drawForeground(cam, w, h, u, pal)
       this.drawHud(g, best, w, h, u, topInset, preset)
-      this.drawReadyScreen(w, h, u, now, pal)
+      this.drawReadyScreen(w, h, u, now, pal, ui.muted)
       return
     }
 
@@ -1643,6 +1654,7 @@ export class Renderer {
         this.deathButtons.retry = { x: cx - 110 * u, y: y1 - 25 * u, w: 220 * u, h: 50 * u }
       }
       ctx.restore()
+      this.drawSoundToggle(14 * u, h - 40 * u, u, ui.muted)
     }
   }
 
@@ -1687,7 +1699,7 @@ export class Renderer {
   }
 
   /** 시작 화면: 제목 + 사용법 루프 데모 카드 + CTA (스크림 없음 — 무대가 그대로 보인다) */
-  private drawReadyScreen(w: number, h: number, u: number, now: number, pal: Palette): void {
+  private drawReadyScreen(w: number, h: number, u: number, now: number, pal: Palette, muted: boolean): void {
     const ctx = this.ctx
     const cx = w / 2
     const cardW = 320 * u
@@ -1733,6 +1745,48 @@ export class Renderer {
     ctx.scale(pulse, pulse)
     this.pill('탭해서 시작', 0, 0, `900 ${Math.round(17 * u)}px ${FONT}`, COL.player, '#ffffff', 34 * u, 4 * u, u, false, 46 * u)
     ctx.restore()
+    this.drawSoundToggle(14 * u, h - 40 * u, u, muted)
+  }
+
+  /** 소리 토글 칩 (왼쪽 정렬) — 시작 화면·결과 카드. 44px 히트 영역 (BUILD 37) */
+  private drawSoundToggle(x: number, y: number, u: number, muted: boolean): void {
+    const ctx = this.ctx
+    const text = muted ? '소리 꺼짐' : '소리 켜짐'
+    ctx.font = `800 ${Math.round(13 * u)}px ${FONT}`
+    const w = ctx.measureText(text).width + 46 * u
+    const hh = 32 * u
+    this.chip(x, y, w, hh, muted ? COL.card : COL.target, 3 * u)
+    // 스피커 아이콘: 작은 사각 + 나팔, 꺼지면 사선
+    const ix = x + 12 * u
+    const iy = y + hh / 2
+    ctx.fillStyle = COL.ink
+    ctx.fillRect(ix, iy - 3.5 * u, 4 * u, 7 * u)
+    ctx.beginPath()
+    ctx.moveTo(ix + 4 * u, iy - 3.5 * u)
+    ctx.lineTo(ix + 10 * u, iy - 8 * u)
+    ctx.lineTo(ix + 10 * u, iy + 8 * u)
+    ctx.lineTo(ix + 4 * u, iy + 3.5 * u)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 2 * u
+    ctx.lineCap = 'round'
+    if (muted) {
+      ctx.beginPath()
+      ctx.moveTo(ix - 1 * u, iy - 9 * u)
+      ctx.lineTo(ix + 13 * u, iy + 9 * u)
+      ctx.stroke()
+    } else {
+      ctx.beginPath()
+      ctx.arc(ix + 10 * u, iy, 5.5 * u, -0.9, 0.9)
+      ctx.stroke()
+    }
+    ctx.fillStyle = COL.ink
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, x + 30 * u, iy + 1 * u)
+    ctx.textBaseline = 'alphabetic'
+    this.soundBox = { x: x - 6 * u, y: y - 6 * u, w: w + 12 * u, h: hh + 12 * u }
   }
 
   /**
