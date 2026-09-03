@@ -476,3 +476,10 @@
 - D-022. `git checkout da5a513 -- src/` + `sound.ts` 삭제. 테스트 55개(이벤트 테스트 3개도 함께 사라짐), 빌드 115,339바이트
 - GRAC 초안 B39 갱신: 무음 문구 복귀, 장면 14 삭제(13장), zip·해시·PDF 재생성. grac-shots.mjs에서 소리 장면 제거
 - B38 콘솔 MCP 배포 경로는 HANDOFF에 남아 있다(miniAppId 72345)
+
+## 2026-09-03 — GRAC 동결 B40 + 심의용 웹 게시 (D-023)
+
+- `?p=` 프리셋을 DEV 전용으로 → 배포 번들 114,998바이트, 프리셋 문자열 없음. 테스트 55개
+- `grac-제출/` 전부 B40으로 재생성(zip·해시·스크린샷 13장·PDF 3종). README를 "동결·접수 대기"로, 남은 일은 사용자 4개(동명 재확인·
+  영상·등록증·접수)
+- gh-pages 브랜치(orphan, dist + .nojekyll) 푸시 → https://jsypsy.github.io/naranara/ — 내려받아 SHA-256 대조

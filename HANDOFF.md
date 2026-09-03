@@ -1,15 +1,16 @@
 # Session Handoff
-_Last updated: 2026-09-03 (BUILD 39)_
+_Last updated: 2026-09-03 (BUILD 40)_
 
 ## 지금 상태
 
-**날아날아 — 효과음 전부 제거, 무음으로 (BUILD 39, D-022). B37~38의 소리는 폰에서 들어본 뒤 사용자 결정으로 뺐다. 그 아래 B36 두 갈래 합류. B39 테스트 배포·문자 전송 완료(naranara, 콘솔 MCP). GRAC 제출 초안(`grac-제출/`, B37 기준) 있음.**
+**날아날아 — GRAC 동결 B40 (D-023): 프리셋 제거 + 심의용 웹 게시 + 제출 문서 완성. 접수는 사용자가. B39에서 효과음 전부 제거(D-022). B37~38의 소리는 폰에서 들어본 뒤 사용자 결정으로 뺐다. 그 아래 B36 두 갈래 합류. B39 테스트 배포·문자 전송 완료(naranara, 콘솔 MCP). GRAC 제출 초안(`grac-제출/`, B37 기준) 있음.**
 
 ```
 컨셉       원버튼 그래플 스윙 (홀드=로프+감기+펌프, 릴리스=관성 발사). D-001, D-005, D-006
 이름       **날아날아 / naranara** (D-020, 2026-09-03) — 동명 검색 완료. 리포명도 naranara. GRAC 제명은 신청 직전 재확인
 경로       /Users/jsypsy/Documents/workspace/toss/naranara. 형제 앱: toss/hanjulpang(출시) · toss/shootingstar(검수 단계)
-코드       BUILD 39 — 효과음 전부 제거(D-022): src를 B36 상태로, sound.ts 삭제. 소리 토글·광고 mute·Game.events도 함께
+코드       BUILD 40 — **GRAC 등급본**(D-023): `?p=` 프리셋을 DEV 전용으로. 접수 뒤 내용 변경 금지
+           B39 — 효과음 전부 제거(D-022): src를 B36 상태로, sound.ts 삭제. 소리 토글·광고 mute·Game.events도 함께
            B37~38 — (되돌림) 효과음 5종 + 회전 충전 지속음 — 이력 `3a2de61`·`5691b19`(잡기·놓기·찬스·게이지 성공/실패·사망, `Game.events` → main `playEvents`) · 소리 토글 칩
            (시작 화면·결과 카드 왼쪽 아래) · 광고 전후 mute · 백그라운드 정지 (D-021)
            B36 — 두 갈래 합류(아래 B32~35 + 이름 변경). 이름 변경: appName `naranara` · `intoss://naranara` · 저장 `nara.v1`
@@ -44,8 +45,9 @@ _Last updated: 2026-09-03 (BUILD 39)_
 저장소     origin = github.com/jsypsy/naranara (리포명 변경 2026-09-03). `toss/junglehook` 로컬 폴더는 합류했으니 더 쓰지 않는다.
            디자인 캔버스 **게시본은 커밋 안 함**(2MB대라 웹 세션 푸시가 막힌다)
 디자인     밝은 카툰 정글(D-008) + 사계절(D-010) + 캐노피(D-011) + 계절 나무(design/trees) — `design/`, 링크는 design/README.md
-GRAC       `grac-제출/` 초안(B39 기준·무음, 미접수). 동결 전 체크리스트는 그 README — 프리셋 제거·gh-pages·영상·동명 재확인이 남았다
-다음       B39 실기기 확인 → Phase 1 잔여(점수 제출·뒤로가기 모달) → GRAC 동결·접수 → Phase 1 잔여(점수 제출·뒤로가기 모달) → GRAC 동결·접수
+GRAC       **B40 동결, 접수 대기.** `grac-제출/README.md`에 남은 일(사용자: 동명 재확인·영상·등록증·접수). 심의용 웹
+           https://jsypsy.github.io/naranara/ (gh-pages, zip과 SHA 동일 — 심의 끝날 때까지 갱신 금지). 동결 전 체크리스트는 그 README — 프리셋 제거·gh-pages·영상·동명 재확인이 남았다
+다음       [사용자] GRAC 접수 → 결정 대기 중 Phase 1 잔여(점수 제출·뒤로가기 모달 — UI라 무방) → 콘솔 검수 → Phase 1 잔여(점수 제출·뒤로가기 모달) → GRAC 동결·접수
 ```
 
 ## 다음 세션이 할 일

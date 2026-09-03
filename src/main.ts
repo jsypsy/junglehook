@@ -20,8 +20,9 @@ const analytics = new Analytics(platform)
 /** 리워드 광고 진행 중 — 버튼 잠금·"불러오는 중" 표시 */
 let adBusy = false
 
-// A/B 프리셋: ?p=b4 등 (tuning.ts PRESETS). 게임 생성 전에 적용
-const preset = applyPreset(new URLSearchParams(location.search).get('p'))
+// A/B 프리셋: ?p=b4 등 (tuning.ts PRESETS). 게임 생성 전에 적용 — **개발 서버에서만.** 배포본에 남기면 `?p=nothreat`로
+// 벽괴물을 끌 수 있어 GRAC 설명서의 "치트 코드 없음"과 어긋난다 (BUILD 40, D-023)
+const preset = import.meta.env.DEV ? applyPreset(new URLSearchParams(location.search).get('p')) : null
 let game = createGame(Date.now() >>> 0)
 let best = loadBest()
 let cam = { x: 0, zoom: 1 }
