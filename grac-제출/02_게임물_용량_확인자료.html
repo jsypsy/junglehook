@@ -1,0 +1,161 @@
+<meta charset="utf-8" />
+<title>게임물 용량 확인자료 — 날아날아</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Malgun Gothic', '맑은 고딕', Pretendard, -apple-system, sans-serif;
+    font-size: 10.5pt; line-height: 1.75; color: #16181d; margin: 0;
+  }
+  h1 { font-size: 19pt; margin: 0 0 4px; letter-spacing: -0.5px; }
+  .lead { color: #4a5163; margin: 0 0 22px; font-size: 10.5pt; }
+  h2 {
+    font-size: 13.5pt; margin: 24px 0 10px; padding: 7px 0 7px 11px;
+    border-left: 5px solid #2b5bd7; background: #f2f5fc; page-break-after: avoid;
+  }
+  p { margin: 7px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 9.8pt; }
+  th, td { border: 1px solid #c3c9d6; padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #eef1f7; font-weight: 700; }
+  td.k { background: #f7f9fc; font-weight: 700; white-space: nowrap; width: 150px; }
+  .num { text-align: right; font-family: Consolas, 'D2Coding', monospace; white-space: nowrap; }
+  .mono { font-family: Consolas, 'D2Coding', monospace; font-size: 9.3pt; word-break: break-all; }
+  .total td { background: #eef4ff; font-weight: 700; }
+  pre {
+    background: #1e2128; color: #e6e9ef; padding: 11px 13px; font-size: 8.6pt;
+    font-family: Consolas, 'D2Coding', monospace; line-height: 1.55;
+    white-space: pre-wrap; word-break: break-all; border-radius: 4px; margin: 9px 0;
+  }
+  .note {
+    background: #f6f8fb; border: 1px solid #d3d9e6; border-left: 4px solid #2b5bd7;
+    padding: 9px 13px; margin: 12px 0; font-size: 9.8pt;
+  }
+  .big {
+    font-size: 15pt; font-weight: 700; background: #eef4ff; border: 1px solid #9ab4ea;
+    padding: 13px 16px; margin: 14px 0; text-align: center;
+  }
+  ul { margin: 7px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #c3c9d6; font-size: 9pt; color: #666e80; }
+</style>
+
+<h1>게임물 용량 확인자료</h1>
+<p class="lead">게임물명 <strong>날아날아</strong> · 웹 기반 게임물 · 등급분류 신청 수수료 산정용 · 2026년 9월 3일</p>
+
+<h2>1. 산정 결과</h2>
+
+<div class="big">게임물 이용에 필요한 총 용량 = 116,191 바이트 (약 113.5 KB / 0.11 MB)</div>
+
+<p>본 게임물은 웹브라우저에서 실행되는 게임으로, 이용자가 게임을 플레이하기 위해
+내려받는 파일은 아래 <strong>2개가 전부</strong>다. 설치 파일이나 추가 내려받기가 없다.</p>
+
+<h2>2. 파일별 용량 내역</h2>
+
+<table>
+  <tr>
+    <th>파일 경로</th>
+    <th style="width:95px">크기(바이트)</th>
+    <th style="width:170px">내용</th>
+  </tr>
+  <tr>
+    <td class="mono">index.html</td>
+    <td class="num">1,332</td>
+    <td>게임을 여는 시작 문서</td>
+  </tr>
+  <tr>
+    <td class="mono">assets/index-DlXaG58j.js</td>
+    <td class="num">114,859</td>
+    <td>게임 로직·물리·화면 그리기 전체</td>
+  </tr>
+  <tr class="total">
+    <td>합계 (2개 파일)</td>
+    <td class="num">116,191</td>
+    <td>약 113.5 KB / 0.11 MB</td>
+  </tr>
+</table>
+
+<h2>3. 별도 리소스 파일이 없는 이유</h2>
+
+<p>일반적인 게임물과 달리 본 게임물에는 <strong>이미지·음원·동영상·글꼴 파일이 하나도 없다.</strong>
+따라서 위 2개 파일 외에 추가로 내려받는 데이터가 발생하지 않는다.</p>
+
+<table>
+  <tr><td class="k">그래픽</td><td>주인공·잎·로프·나무·구름·태양·벽괴물·글자를 모두 <strong>코드로 직접 그린다</strong>(HTML5 Canvas 2D). 도형과 선을 프로그램이 매 프레임 그리는 방식이며, 이미지 파일(PNG·JPG·SVG 등)이 존재하지 않는다</td></tr>
+  <tr><td class="k">글꼴</td><td>화면의 글자는 단말에 이미 설치된 <strong>시스템 글꼴</strong>로 그린다. 글꼴 파일을 내려받지 않는다</td></tr>
+  <tr><td class="k">음향</td><td>제출 빌드에는 <strong>효과음·배경음악이 없다.</strong> 음원 파일(MP3·WAV 등)이 존재하지 않는다</td></tr>
+  <tr><td class="k">동영상</td><td>게임 내 동영상·컷신이 없다</td></tr>
+  <tr><td class="k">추가 내려받기</td><td>플레이 중 서버에서 콘텐츠를 추가로 내려받는 구조가 없다. 잎의 배치 등은 단말 안에서 계산한다</td></tr>
+</table>
+
+<h2>4. 실측 자료</h2>
+
+<p>아래는 실제 게시된 주소에 대해 파일 크기를 조회한 결과다.
+<strong>게임물관리위원회에서도 동일한 방법으로 직접 확인하실 수 있다.</strong></p>
+
+<pre>$ curl -sSI https://jsypsy.github.io/naranara/
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 1332
+
+$ curl -sSI https://jsypsy.github.io/naranara/assets/index-DlXaG58j.js
+HTTP/1.1 200 OK
+Content-Type: application/javascript; charset=utf-8
+Content-Length: 114859
+
+합계 = 1,332 + 114,859 = 116,191 바이트</pre>
+
+<p>또는 웹브라우저에서 위 주소를 연 뒤 <strong>개발자도구(F12) → 네트워크(Network) 탭</strong>을
+열고 새로고침하면, 내려받는 파일이 위 2개뿐이고 합계가 동일함을 확인하실 수 있다.</p>
+
+<h2>5. 제출한 게임 파일과의 동일성</h2>
+
+<p>등급분류 신청 시 제출한 게임 파일 <span class="mono">날아날아_게임빌드.zip</span> 안의 파일과,
+위 웹 주소에서 제공되는 파일은 <strong>바이트 단위로 완전히 동일하다.</strong>
+아래는 두 파일의 SHA-256 해시값이며 서로 일치한다.</p>
+
+<table>
+  <tr><th style="width:180px">파일</th><th>SHA-256</th></tr>
+  <tr>
+    <td class="mono">index.html<br />(1,332 바이트)</td>
+    <td class="mono">e7b1e0dd7eb1e5682d364ca5cbef5c1fffa22af50a89c35042dc807f9a0d28fb</td>
+  </tr>
+  <tr>
+    <td class="mono">assets/index-DlXaG58j.js<br />(114,859 바이트)</td>
+    <td class="mono">85979b75a08c31c8e503782f066c448de7c8a4500b2766dc5dbffa6b79b55eea</td>
+  </tr>
+</table>
+
+<p>제출한 zip 파일 자체의 SHA-256은
+<span class="mono">d5bcbe06c4b3068a8cca0f7dd93efba327f2ff855c301b4e74cca5f0c93c22f6</span> 이며,
+zip 안에는 위 2개 파일 외에 다른 파일이 들어 있지 않다.</p>
+
+<h2>6. 참고 — 저장 공간 및 외부 스크립트</h2>
+
+<table>
+  <tr>
+    <td class="k">단말 저장 용량</td>
+    <td>최고 기록(전진 거리), 안내 카드를 다시 보지 않기로 한 설정을 브라우저 저장소(localStorage)에 기록한다.
+        저장되는 데이터는 <strong>1 KB 미만</strong>의 텍스트다</td>
+  </tr>
+  <tr>
+    <td class="k">광고 스크립트</td>
+    <td>토스 미니앱으로 실행할 때, 이용자가 <strong>[광고 보고 이어하기]를 직접 선택한 경우에 한해</strong>
+        토스가 제공하는 광고를 그 시점에 재생한다.
+        게임물 본체에 포함된 파일이 아니라 <strong>플랫폼 사업자가 제공하는 제3자 기능</strong>이며,
+        광고를 선택하지 않으면 사용되지 않는다.
+        심사용 웹 주소(일반 브라우저)에서는 이 기능이 전혀 사용되지 않는다</td>
+  </tr>
+</table>
+
+<h2>7. 요약</h2>
+<ul>
+  <li>게임물 이용에 필요한 용량: <strong>116,191 바이트 (약 0.11 MB)</strong></li>
+  <li>구성: HTML 1개 + JavaScript 1개, 총 2개 파일</li>
+  <li>이미지·음원·글꼴 등 별도 리소스 파일 <strong>없음</strong></li>
+  <li>설치 파일·추가 내려받기 <strong>없음</strong></li>
+  <li>확인 주소: <span class="mono">https://jsypsy.github.io/naranara/</span></li>
+</ul>
+
+<footer>
+  게임물 용량 확인자료 — 날아날아 · 토니소프트 · 2026년 9월 3일 작성
+</footer>
