@@ -145,8 +145,12 @@ describe('game', () => {
     expect(g.continues).toBe(1)
     expect(g.body.anchor).toBeNull()
     expect(g.body.vel.y).toBeLessThan(0) // 위로 던져진다
-    expect(g.body.pos.x).toBeLessThanOrEqual(deadX + TUNING.continueSpawn.dx)
+    expect(g.body.pos.x).toBeLessThanOrEqual(deadX) // 죽음이 거리를 주지 않는다
     expect(g.body.pos.y).toBeLessThan(TUNING.killY - 100)
+    // 다음 잎이 dy 위·dx 이상 앞 — 첫 잎과 같은 기하
+    const next = g.field.anchors.find((a) => a.x > g.body.pos.x)!
+    expect(next.y + TUNING.continueSpawn.dy).toBeCloseTo(g.body.pos.y)
+    expect(next.x - g.body.pos.x).toBeGreaterThanOrEqual(Math.min(TUNING.continueSpawn.dx, 148))
     // 살아 있는 동안은 거부
     expect(continueRun(g)).toBe(false)
     for (let n = 1; n < TUNING.maxContinues; n++) {
@@ -157,6 +161,25 @@ describe('game', () => {
     expect(g.phase).toBe('dead')
     expect(continuesLeft(g)).toBe(0)
     expect(continueRun(g)).toBe(false)
+  })
+
+  it('이어하기: 후반(잎 높이 흔들림 최대)에서도 재출발 직후 잡을 잎이 위·사거리 안에 있다', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const g = createGame(seed)
+      press(g)
+      g.body.pos = { x: 20000 + seed * 137, y: TUNING.killY + 50 }
+      update(g, 1 / 120)
+      expect(g.phase).toBe('dead')
+      expect(continueRun(g)).toBe(true)
+      const t = selectTarget(g)
+      expect(t).not.toBeNull()
+      // 다음 잎은 dy 위 — 죽은 자리가 기준 잎 바로 뒤면 그 잎(더 높은 쪽)이 타깃일 수도 있다. 어느 쪽이든 위·사거리 안
+      const next = g.field.anchors.find((a) => a.x > g.body.pos.x)!
+      expect(next.y + TUNING.continueSpawn.dy).toBeCloseTo(g.body.pos.y)
+      const a = g.field.anchors[t!]!
+      expect(g.body.pos.y - a.y).toBeGreaterThanOrEqual(TUNING.targetMinAbove)
+      expect(Math.hypot(a.x - g.body.pos.x, a.y - g.body.pos.y)).toBeLessThanOrEqual(TUNING.reach)
+    }
   })
 
   it('소닉 파워: 그 해의 찬스 지점 뒤 첫 잡기에서만 찬스 — 3바퀴 장착 → 게이지 → 직선 대시 후 일반 비행', () => {

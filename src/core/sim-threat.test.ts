@@ -6,7 +6,8 @@
  * 슈퍼는 loopsToArm=999로 끈다. 결과는 docs/PROGRESS.md에 기록한다.
  */
 import { it } from 'vitest'
-import { createGame, meters, press, releaseInput, sonicInSweet, update } from './game'
+import { continueRun, createGame, meters, press, releaseInput, sonicInSweet, update } from './game'
+import { Rng } from './rng'
 import { TUNING } from './tuning'
 
 const STEP = 1 / 120
@@ -125,6 +126,64 @@ it.skipIf(!RUN)('슈퍼 켠 봇 종단 (세션 길이 기준표)', () => {
     const avg = (f: (r: (typeof rs)[0]) => number) => rs.reduce((a, r) => a + f(r), 0) / rs.length
     console.log(
       `θ=${th}°  사망 ${dead.length}/8  평균 ${avg((r) => r.sec).toFixed(0)}s ${avg((r) => r.m).toFixed(0)}m  대시 ${avg((r) => r.dashes).toFixed(1)}회  [${rs.map((r) => r.sec.toFixed(0)).join(' ')}]`,
+    )
+  }
+})
+
+/**
+ * 이어하기 봇 — 게이지는 반반 확률로 맞추고, 죽으면 maxContinues까지 이어한다. 이어하기 뒤 5초 안에 죽는 비율이
+ * 지표다(광고 보고 바로 죽으면 D-001 3번이 깨진다). BUILD 31 재출발(마지막 잎 +75,+130)은 θ=35°에서 11/119 →
+ * 다음 잎 기준(BUILD 32) 1/119. 첫 생과 달리 후반 난이도에서 시작하므로 10초 안 사망은 첫 생보다 많은 게 정상
+ */
+function runContinueBot(seed: number, thetaDeg: number, maxSec: number): number[] {
+  const g = createGame(seed)
+  const rng = new Rng(seed * 7919 + 17)
+  press(g)
+  const theta = (thetaDeg * Math.PI) / 180
+  const lives: number[] = []
+  let t0 = 0
+  let decided: boolean | null = null
+  for (let i = 0; i < 120 * maxSec; i++) {
+    if (g.phase === 'dead') {
+      lives.push(g.timeSec - t0)
+      if (!continueRun(g)) break
+      t0 = g.timeSec
+      continue
+    }
+    const b = g.body
+    if (g.sonic.pending) press(g)
+    else if (b.anchor && g.sonic.chance) {
+      if (g.sonic.armed) {
+        if (decided === null) decided = rng.next() < 0.5
+        if (decided) {
+          if (sonicInSweet(g)) releaseInput(g)
+        } else if (g.sonic.gaugeT > 0.3 && !sonicInSweet(g)) releaseInput(g)
+      }
+    } else {
+      decided = null
+      if (b.anchor) {
+        const ang = Math.atan2(b.pos.x - b.anchor.x, b.pos.y - b.anchor.y)
+        if (ang > theta && b.vel.y < 0) releaseInput(g)
+      } else if (!g.holding && b.vel.y > -20) press(g)
+    }
+    update(g, STEP)
+  }
+  return lives
+}
+
+it.skipIf(!RUN)('이어하기 봇 (이어하기 뒤 조기 사망 기준표)', () => {
+  const seeds = Array.from({ length: 40 }, (_, i) => i + 1)
+  const q = (a: number[], f: number): number => {
+    const s = [...a].sort((x, y) => x - y)
+    return s[Math.min(s.length - 1, Math.floor(f * s.length))] ?? 0
+  }
+  console.log(`\n== 이어하기 (게이지 50%, ${TUNING.maxContinues}회, 400s, seeds=40) ==`)
+  for (const th of [30, 35, 45]) {
+    const all = seeds.map((s) => runContinueBot(s, th, 400))
+    const first = all.map((l) => l[0] ?? 0)
+    const after = all.flatMap((l) => l.slice(1))
+    console.log(
+      `θ=${th}°  첫 생 med ${q(first, 0.5).toFixed(0)}s  이어하기 뒤 n=${after.length} <5s ${after.filter((x) => x < 5).length} <10s ${after.filter((x) => x < 10).length}  q1 ${q(after, 0.25).toFixed(0)} med ${q(after, 0.5).toFixed(0)} q3 ${q(after, 0.75).toFixed(0)}s`,
     )
   }
 })
