@@ -3,8 +3,8 @@ _Last updated: 2026-09-03 (BUILD 37)_
 
 ## 지금 상태
 
-**날아날아 — 효과음 5종 + 소리 토글 (BUILD 37, D-021). 그 아래 B36 두 갈래 합류. 콘솔 `naranara` 등록 완료, **B37 미배포** —
-소리는 아직 폰에서 못 들었다. GRAC 제출 초안(`grac-제출/`, B37 기준) 있음.**
+**날아날아 — 효과음 5종 + 소리 토글 (BUILD 37, D-021). 그 아래 B36 두 갈래 합류. B37 테스트 배포·문자 전송 완료(naranara) —
+소리 판정은 사용자 몫. GRAC 제출 초안(`grac-제출/`, B37 기준) 있음.**
 
 ```
 컨셉       원버튼 그래플 스윙 (홀드=로프+감기+펌프, 릴리스=관성 발사). D-001, D-005, D-006
@@ -36,7 +36,11 @@ _Last updated: 2026-09-03 (BUILD 37)_
            사용자 "너무 쉬운 것 아닌가"(B26) → 봇 계측이 뒷받침: 슈퍼 켠 봇 141초·2868m·대시 11.5회, 거리의 77%가 대시
            → B27로 1년 1회. 재계측 102~118초·1900~2038m·대시 1.9~2.0회 (봇은 게이지를 항상 맞추는 상한).
            **난이도는 아직 실기기 미판정** — B29~31은 로컬 개발서버로만 봤다
-콘솔       naranara 등록 완료(2026-09-03) · **B36 미배포**. junglehook 슬러그로 나간 B31~B35 배포(최신 `01a062a9…`)는 옛 슬러그라 무효
+콘솔       naranara 등록 완료 · **B37 테스트 배포 `01a066e7…`(2026-09-03 19:54, GitHub Actions, 문자 전송 완료)**.
+           ⚠️ 이 맥의 `~/.ait/credentials` default 키는 **정글훅 앱 것** — `naranara`로 로컬 배포하면 4031(앱 없음/권한 없음).
+           naranara 배포는 GitHub Actions(`gh workflow run "앱인토스 테스트 배포"` → 아티팩트 deploy-qr의 latest-deployment.json →
+           `ait:send`)로, 또는 콘솔에서 naranara 배포 키를 받아 `npx ait token add --api-key … naranara` 뒤 `ait deploy --profile naranara`.
+           junglehook 슬러그 배포(B37 `01a066e6…`까지)는 옛 슬러그라 무효
 저장소     origin = github.com/jsypsy/naranara (리포명 변경 2026-09-03). `toss/junglehook` 로컬 폴더는 합류했으니 더 쓰지 않는다.
            디자인 캔버스 **게시본은 커밋 안 함**(2MB대라 웹 세션 푸시가 막힌다)
 디자인     밝은 카툰 정글(D-008) + 사계절(D-010) + 캐노피(D-011) + 계절 나무(design/trees) — `design/`, 링크는 design/README.md
@@ -46,7 +50,7 @@ GRAC       `grac-제출/` 초안(B37 기준, 미접수). 동결 전 체크리스
 
 ## 다음 세션이 할 일
 
-0. **B37 배포** — 콘솔 등록은 끝났다. 로컬이면 `ait:build → ait:deploy → ait:send` 한 묶음. 로컬이 없으면
+0. ~~B37 배포~~ 완료(`01a066e7…`). 다음 배포도 같은 길: 로컬이면 `ait:build → ait:deploy → ait:send` 한 묶음. 로컬이 없으면
    GitHub Actions "앱인토스 테스트 배포"(플레이북 §2) — 리포 시크릿 `AIT_API_KEY`가 먼저 있어야 한다.
    naranara 슬러그의 첫 빌드라 타이틀에 "날아날아"가 찍히는지, 옛 `jgh.v1` 저장값이 사라져 최고기록이 0인지 확인.
    **소리**: 첫 탭에 잡기음이 나는가(iOS 첫 탭 무음 — 한줄팡 D-009~D-012) · 음량 균형(놓기·사망이 너무 크지 않은가) · 토스 헤더 아래에서
