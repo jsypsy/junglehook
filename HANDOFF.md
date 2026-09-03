@@ -36,7 +36,7 @@ _Last updated: 2026-09-03 (BUILD 39)_
            사용자 "너무 쉬운 것 아닌가"(B26) → 봇 계측이 뒷받침: 슈퍼 켠 봇 141초·2868m·대시 11.5회, 거리의 77%가 대시
            → B27로 1년 1회. 재계측 102~118초·1900~2038m·대시 1.9~2.0회 (봇은 게이지를 항상 맞추는 상한).
            **난이도는 아직 실기기 미판정** — B29~31은 로컬 개발서버로만 봤다
-콘솔       naranara = miniAppId **72345** (workspace 72091 "성엽스앱"). **B38 테스트 배포 `01a066f4…`(2026-09-03 20:08, 콘솔 MCP, 문자 전송 완료)**.
+콘솔       naranara = miniAppId **72345** (workspace 72091 "성엽스앱"). **B39 테스트 배포 `01a066f9…`(2026-09-03 20:13, 콘솔 MCP, 문자 전송 완료)** — B38 `01a066f4…`는 소리 있던 판.
            배포는 **콘솔 MCP**로: `ait build`(deploymentId) → `bundle_upload` → uploadUrl에 curl PUT → `bundle_upload_complete` →
            `bundle_build_status` → `bundle_test_push`(privateLink) → latest-deployment.json 갱신 → `ait:send`. MCP는 사용자 범위로
            등록돼 있고 세션마다 `/mcp`로 인증. ⚠️ 이 맥의 `~/.ait/credentials` default 키는 **정글훅 앱 것**이라 `ait deploy`는
