@@ -63,6 +63,13 @@ npm run ait:deploy     # ait deploy 래퍼 (tools/deploy.mjs)
   AppleScript). 폰 메시지에서 링크를 탭하면 토스가 열린다. 수신자는 `tools/imessage.local.json`
   `{"to": "+82…"}`(gitignore) 또는 `JGH_IMESSAGE_TO`
 
+**로컬 맥이 없을 때 — GitHub Actions 배포** (`.github/workflows/deploy.yml`, 2026-09-03 도입).
+클라우드 세션은 `apps-in-toss.toss.im`이 네트워크 정책에 막혀 `ait deploy`가 안 되지만(403),
+GitHub 러너는 된다. Actions → "앱인토스 테스트 배포" → Run workflow(브랜치 선택)로 사람이 직접
+누른다 — 자동 실행 없음. 준비물은 리포 시크릿 `AIT_API_KEY`(콘솔에서 발급한 배포용 API 키) 하나.
+결과는 잡 Summary의 URL과 아티팩트 `deploy-qr.png`(폰 카메라로 스캔). 이 경로로 배포하면
+로컬 `tools/latest-deployment.json`은 갱신되지 않는다.
+
 ⚠️ **파라미터 없는 `intoss-private://<app>`은 미출시 상태에서 거부된다**
 ("지금은 서비스를 사용할 수 없어요"). 반드시 `_deploymentId`가 붙은 전체 URL을
 쓴다. 커스텀 스킴은 주소창에 직접 못 넣으므로 `tools/go.html`을 폰 사파리에

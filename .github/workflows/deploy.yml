@@ -1,0 +1,84 @@
+# 앱인토스 테스트 배포 — 로컬 맥 없이 GitHub에서 배포한다 (2026-09-03, 웹 세션에서 배포가 막혀 도입).
+#
+# 실행: GitHub → Actions → "앱인토스 테스트 배포" → Run workflow (브랜치 선택).
+# 자동으로는 절대 돌지 않는다 — "배포는 언제나 사전 확인" 원칙을 버튼으로 지킨다.
+#
+# 준비물(한 번만): 콘솔에서 발급한 배포용 API 키를 리포 Settings → Secrets and variables → Actions에
+# `AIT_API_KEY`로 등록. 키는 로그에 찍히지 않는다.
+#
+# 결과: 잡 요약(Summary)에 배포 URL, 아티팩트에 `deploy-qr.png`(폰 카메라로 스캔하면 토스가 열린다)와
+# `latest-deployment.json`. 로컬 `tools/latest-deployment.json`은 갱신되지 않는다.
+name: 앱인토스 테스트 배포
+
+on:
+  workflow_dispatch:
+    inputs:
+      memo:
+        description: '배포 메모 (콘솔 번들 목록에 보인다)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ait-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: API 키 확인
+        env:
+          AIT_API_KEY: ${{ secrets.AIT_API_KEY }}
+        run: |
+          if [ -z "$AIT_API_KEY" ]; then
+            echo "::error::리포 시크릿 AIT_API_KEY가 없다 — 콘솔에서 배포용 API 키를 발급해 Settings → Secrets → Actions에 등록"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: 테스트
+        run: npm test
+
+      - name: 빌드 (tsc + vite + ait build)
+        run: npm run ait:build
+
+      - name: 배포 토큰 등록
+        env:
+          AIT_API_KEY: ${{ secrets.AIT_API_KEY }}
+        run: npx ait token add --api-key "$AIT_API_KEY"
+
+      - name: 배포 (tools/deploy.mjs — URL·QR 추출)
+        run: npm run ait:deploy
+
+      - name: 요약에 배포 URL 기록
+        run: |
+          URL=$(node -e "console.log(require('./tools/latest-deployment.json').url)")
+          BUILD=$(grep -o 'BUILD = [0-9]*' src/version.ts)
+          {
+            echo "## 앱인토스 테스트 배포 완료"
+            echo
+            echo "- $BUILD"
+            echo "- 메모: ${{ github.event.inputs.memo }}"
+            echo "- URL: \`$URL\`"
+            echo
+            echo "아티팩트 **deploy-qr**의 \`deploy-qr.png\`를 폰 카메라로 스캔하면 토스가 열린다."
+            echo "(\`intoss-private://\` 스킴은 주소창·QR 앱으로는 못 연다 — 카메라 앱만 된다)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deploy-qr
+          path: |
+            tools/deploy-qr.png
+            tools/latest-deployment.json
+          if-no-files-found: error
+          retention-days: 7
