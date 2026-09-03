@@ -1,0 +1,217 @@
+<!doctype html>
+<!--
+  앱인토스 콘솔 "노출 정보" 이미지 합성 — 로고 600×600(라이트/다크) · 가로 썸네일 1932×828.
+  tools/store-shots.mjs가 헤드리스 크롬으로 열어 캔버스를 그대로 캡처한다 (직접 열어도 그려진다).
+
+    ?kind=logo | logo-dark | thumb   &cut1=<url>&cut2=<url>&cut3=<url>  (thumb 전용, 340×630 컷)
+
+  게임 팔레트(src/render/renderer.ts COL·PALETTES.spring)와 같은 색·같은 시스템 글꼴로 그린다.
+  캐릭터·잎·로프·제목은 renderer의 drawPlayer/drawReadyScreen을 손으로 옮긴 것 — 게임 코드를 import하지 않는다
+  (Renderer는 Game 상태를 요구해 정지 컷을 만들기엔 무겁다).
+-->
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; background: #fff; }
+  canvas { display: block; }
+</style>
+<canvas id="c"></canvas>
+<script>
+  const Q = new URLSearchParams(location.search)
+  const KIND = Q.get('kind') ?? 'logo'
+  const COL = { ink: '#1f3a2a', rope: '#c98c4b', player: '#ff7f3f', card: '#ffffff', target: '#ffcc33' }
+  const SPRING = { player: '#ffd84a', playerHi: '#fff3b0', skyTop: '#cfe9f6', skyBottom: '#fbeef0', cloud: '#ffffff', leaf: '#3f9a58', vine: '#6cbf6f' }
+  const FONT = 'system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif'
+
+  const SIZE = { logo: [600, 600], 'logo-dark': [600, 600], thumb: [1932, 828] }[KIND]
+  const canvas = document.getElementById('c')
+  canvas.width = SIZE[0]
+  canvas.height = SIZE[1]
+  const ctx = canvas.getContext('2d')
+  const W = SIZE[0], H = SIZE[1]
+
+  function sky(top, bottom) {
+    const g = ctx.createLinearGradient(0, 0, 0, H)
+    g.addColorStop(0, top)
+    g.addColorStop(1, bottom)
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, W, H)
+  }
+  function outlined(path, fill, lw) {
+    path()
+    ctx.fillStyle = fill
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = lw
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+  }
+  /** 뭉게구름 — 원 세 개를 겹쳐 한 외곽선으로 */
+  function cloud(x, y, s, color) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(s, s)
+    outlined(() => {
+      ctx.beginPath()
+      ctx.arc(-34, 0, 24, 0, Math.PI * 2)
+      ctx.arc(0, -12, 32, 0, Math.PI * 2)
+      ctx.arc(36, 2, 24, 0, Math.PI * 2)
+      ctx.rect(-40, 4, 80, 20)
+    }, color, 3 / s)
+    // 외곽선이 안쪽 겹침에도 그려지므로 몸통을 한 번 더 채워 지운다
+    ctx.beginPath()
+    ctx.arc(-34, 0, 24 - 1.5 / s, 0, Math.PI * 2)
+    ctx.arc(0, -12, 32 - 1.5 / s, 0, Math.PI * 2)
+    ctx.arc(36, 2, 24 - 1.5 / s, 0, Math.PI * 2)
+    ctx.rect(-40, 4, 80, 20 - 1.5 / s)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.restore()
+  }
+  /** 덩굴 끝의 잎 (앵커) — 위에서 내려오는 덩굴 + 잎 한 장 */
+  function leaf(x, y, s, vineTop) {
+    ctx.strokeStyle = SPRING.vine
+    ctx.lineCap = 'round'
+    ctx.lineWidth = 5 * s
+    ctx.beginPath()
+    ctx.moveTo(x + 14 * s, vineTop)
+    ctx.quadraticCurveTo(x + 24 * s, y - 40 * s, x, y)
+    ctx.stroke()
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(-0.9)
+    outlined(() => {
+      ctx.beginPath()
+      ctx.moveTo(0, -18 * s)
+      ctx.quadraticCurveTo(14 * s, -6 * s, 0, 18 * s)
+      ctx.quadraticCurveTo(-14 * s, -6 * s, 0, -18 * s)
+    }, SPRING.leaf, 3 * s)
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 1.5 * s
+    ctx.beginPath()
+    ctx.moveTo(0, -12 * s)
+    ctx.lineTo(0, 12 * s)
+    ctx.stroke()
+    ctx.restore()
+  }
+  function rope(x1, y1, x2, y2, s) {
+    ctx.strokeStyle = COL.rope
+    ctx.lineCap = 'round'
+    ctx.lineWidth = 6 * s
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+  }
+  /** 봄 얼굴 플레이어 — renderer.drawPlayer(spring, holding) 그대로: 홍조 + 힘주는 눈 + 웃는 입 */
+  function player(x, y, r, s, holding) {
+    outlined(() => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2) }, SPRING.player, 3 * s)
+    ctx.beginPath()
+    ctx.arc(x - r * 0.4, y - r * 0.4, r * 0.3, 0, Math.PI * 2)
+    ctx.fillStyle = SPRING.playerHi
+    ctx.fill()
+    const look = r * 0.08
+    ctx.fillStyle = 'rgba(255,120,120,0.35)'
+    for (const dx of [-0.55, 0.6]) {
+      ctx.beginPath()
+      ctx.ellipse(x + dx * r + look, y + r * 0.38, r * 0.2, r * 0.12, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.fillStyle = COL.ink
+    for (const dx of [-0.28, 0.32]) {
+      ctx.beginPath()
+      if (holding) ctx.ellipse(x + dx * r + look, y + r * 0.12, r * 0.13, r * 0.08, 0, 0, Math.PI * 2)
+      else ctx.arc(x + dx * r + look, y + r * 0.12, r * 0.13, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.strokeStyle = COL.ink
+    ctx.lineCap = 'round'
+    ctx.lineWidth = Math.max(1, r * 0.11)
+    ctx.beginPath()
+    ctx.moveTo(x - r * 0.18 + look, y + r * 0.42)
+    ctx.quadraticCurveTo(x + look, y + r * 0.6, x + r * 0.22 + look, y + r * 0.42)
+    ctx.stroke()
+  }
+  /** 제목 — 주황 글자에 굵은 외곽선 (drawReadyScreen) */
+  function title(x, y, px, strokePx, stroke) {
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    ctx.font = `900 ${px}px ${FONT}`
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = stroke ?? COL.ink
+    ctx.lineWidth = strokePx
+    ctx.strokeText('날아날아', x, y)
+    ctx.fillStyle = COL.player
+    ctx.fillText('날아날아', x, y)
+  }
+  function pill(text, x, y, px, padX, lw) {
+    ctx.font = `800 ${px}px ${FONT}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    const w = ctx.measureText(text).width + padX * 2
+    const h = px * 1.9
+    ctx.beginPath()
+    ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2)
+    ctx.fillStyle = COL.card
+    ctx.fill()
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = lw
+    ctx.stroke()
+    ctx.fillStyle = COL.ink
+    ctx.fillText(text, x, y + px * 0.06)
+  }
+  function loadImg(src) {
+    return new Promise((res, rej) => {
+      const im = new Image()
+      im.onload = () => res(im)
+      im.onerror = rej
+      im.src = src
+    })
+  }
+
+  async function draw() {
+    if (KIND === 'logo' || KIND === 'logo-dark') {
+      const dark = KIND === 'logo-dark'
+      if (dark) sky('#163a2c', '#0f2a1f')
+      else sky(SPRING.skyTop, SPRING.skyBottom)
+      if (!dark) cloud(120, 150, 1.9, SPRING.cloud)
+      // 잎은 우상단, 플레이어는 좌하단에서 앞으로 흔들리는 순간 (grac 02-매달리기 구도)
+      const s = 3.2
+      const lx = 470, ly = 120
+      const px = 235, py = 300, pr = 112
+      leaf(lx, ly, s, -20)
+      rope(px, py, lx, ly, s)
+      player(px, py, pr, s, true)
+      title(300, 548, 118, 16, dark ? '#0a1a12' : COL.ink)
+      return
+    }
+    // thumb 1932×828 — 왼쪽: 제목 + 부제 + 캐릭터, 오른쪽: 게임 컷 3장(340×630, 1:1)
+    sky(SPRING.skyTop, SPRING.skyBottom)
+    cloud(150, 640, 2.4, SPRING.cloud)
+    cloud(1800, 120, 1.6, SPRING.cloud)
+    title(410, 262, 150, 20)
+    pill('얼마나 멀리 갈 수 있을까?', 410, 350, 40, 34, 5)
+    const s = 3
+    leaf(720, 440, s, 300)
+    rope(420, 660, 720, 440, s)
+    player(420, 660, 110, s, true)
+    const cuts = ['cut1', 'cut2', 'cut3'].map((k) => Q.get(k)).filter(Boolean)
+    const imgs = await Promise.all(cuts.map(loadImg))
+    let x = 1932 - 30 - 340
+    for (let i = imgs.length - 1; i >= 0; i--) {
+      const y = (828 - 630) / 2
+      ctx.save()
+      ctx.beginPath()
+      ctx.roundRect(x, y, 340, 630, 28)
+      ctx.clip()
+      ctx.drawImage(imgs[i], x, y, 340, 630)
+      ctx.restore()
+      ctx.beginPath()
+      ctx.roundRect(x, y, 340, 630, 28)
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 6
+      ctx.stroke()
+      x -= 340 + 30
+    }
+  }
+  document.fonts.ready.then(draw).then(() => { window.__done = true })
+</script>

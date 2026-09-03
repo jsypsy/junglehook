@@ -1,0 +1,41 @@
+{
+  "_주석": "콘솔 앱정보 등록 페이로드 — GRAC 증명서 수령 후 miniApp.gameInfo.gameRating과 gameRatingCertificateUri만 채워 miniapp_update_basic_info(workspaceId 72091)로 보낸다. 문안 원본은 docs/STORE_COPY.md, 이미지 제작은 assets/store/README.md.",
+  "impression": {
+    "categoryIds": [3836],
+    "keywordList": ["날아날아", "스윙게임", "원버튼게임", "한손게임", "로프게임", "정글게임", "미니게임", "캐주얼게임", "아케이드", "하이스코어"]
+  },
+  "miniApp": {
+    "miniAppId": 72345,
+    "appName": "naranara",
+    "title": "날아날아",
+    "titleEn": "Naranara",
+    "description": "누르면 매달리고 떼면 날아가요",
+    "detailDescription": "「날아날아」는 화면을 누르고 떼는 것만으로 진행하는 원버튼 스윙 게임입니다.\n\n시작 화면에서 [탭해서 시작]을 누르면 바로 시작합니다. 화면 아무 곳이나 꾹 누르면 주인공이 로프를 던져 가장 가까운 잎에 매달려 그네처럼 흔들리고, 손을 떼면 관성으로 날아갑니다. 다시 누르면 다음 잎을 잡습니다. 조준도 발사 버튼도 없습니다.\n\n앞으로 나아간 거리가 점수이고 「일수」로 표시됩니다. 250m마다 봄, 여름, 가을, 겨울로 배경이 바뀝니다. 1년에 한 번 「슈퍼 찬스」가 열리는데, 꾹 누른 채 세 바퀴 돌고 게이지의 노란 구간에서 손을 떼면 200m를 단숨에 날아가는 슈퍼 대시가 터집니다.\n\n뒤에서는 벽괴물이 천천히 쫓아옵니다. 잎을 놓쳐 떨어지거나 따라잡히면 게임이 끝나고, [광고 보고 이어하기]로 그 자리에서 이어 가거나 [다시 하기]로 새로 시작합니다. 내 최고 기록을 넘는 것이 목표입니다.",
+    "iconUri": "https://static.toss.im/appsintoss/72091/10c7fec7-d85c-4471-9ac7-8181b124eff8.png",
+    "darkModeIconUri": "https://static.toss.im/appsintoss/72091/20f511f7-3f2a-41ac-b238-4d95b1b5f40f.png",
+    "gameInfo": {
+      "horizontalThumbnailUri": "https://static.toss.im/appsintoss/72091/82822ca7-8304-44ec-b3bb-e59d36e89c6f.png",
+      "scoreUnit": "일",
+      "scoreUnitEnglish": "days",
+      "sortOrder": "DESC",
+      "_등급_수령후_추가": {
+        "gameRatingCertificateUri": "증명서 PDF 업로드 후 받은 키",
+        "gameRating": {
+          "ageRating": "ALL",
+          "bizName": "토니소프트",
+          "ratingNumber": "제 ??-??-??????-??? 호",
+          "contentRatings": ["NONE"]
+        }
+      }
+    },
+    "images": [
+      { "imageUrl": "https://static.toss.im/appsintoss/72091/82822ca7-8304-44ec-b3bb-e59d36e89c6f.png", "imageType": "THUMBNAIL", "orientation": "HORIZONTAL", "backgroundColor": "#CFE9F6", "backgroundTheme": "LIGHT" },
+      { "imageUrl": "https://static.toss.im/appsintoss/72091/da09644b-e3e2-488a-b13e-6d768b659cef.png", "imageType": "PREVIEW", "orientation": "VERTICAL", "backgroundColor": "#CFE9F6", "backgroundTheme": "LIGHT" },
+      { "imageUrl": "https://static.toss.im/appsintoss/72091/d666fb07-39a5-4f2f-8bc7-8100b7d86aee.png", "imageType": "PREVIEW", "orientation": "VERTICAL", "backgroundColor": "#CFE9F6", "backgroundTheme": "LIGHT" },
+      { "imageUrl": "https://static.toss.im/appsintoss/72091/b49f6569-30cc-4ec3-80b7-71a7d5ebbfa5.png", "imageType": "PREVIEW", "orientation": "VERTICAL", "backgroundColor": "#5CC0E8", "backgroundTheme": "LIGHT" },
+      { "imageUrl": "https://static.toss.im/appsintoss/72091/38a3f3b0-adf7-4e89-907c-61ce833b3f88.png", "imageType": "PREVIEW", "orientation": "VERTICAL", "backgroundColor": "#5CC0E8", "backgroundTheme": "LIGHT" },
+      { "imageUrl": "https://static.toss.im/appsintoss/72091/32ba6a0f-ce46-429e-9c97-be0c32e0d3a8.png", "imageType": "PREVIEW", "orientation": "VERTICAL", "backgroundColor": "#A6BDD6", "backgroundTheme": "LIGHT" },
+      { "imageUrl": "https://static.toss.im/appsintoss/72091/05df1b22-6986-44dc-a799-ce68e9b44413.png", "imageType": "PREVIEW", "orientation": "VERTICAL", "backgroundColor": "#5CC0E8", "backgroundTheme": "LIGHT" }
+    ]
+  }
+}

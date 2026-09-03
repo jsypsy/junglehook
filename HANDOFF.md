@@ -1,5 +1,5 @@
 # Session Handoff
-_Last updated: 2026-09-03 (BUILD 40)_
+_Last updated: 2026-09-04 (BUILD 40)_
 
 ## 지금 상태
 
@@ -47,11 +47,20 @@ _Last updated: 2026-09-03 (BUILD 40)_
 디자인     밝은 카툰 정글(D-008) + 사계절(D-010) + 캐노피(D-011) + 계절 나무(design/trees) — `design/`, 링크는 design/README.md
 GRAC       **2026-09-03 접수 완료, 결정 대기.** 보완요청·결정은 `grac-제출/README.md` 머리에 기록. 심의용 웹
            https://jsypsy.github.io/naranara/ (gh-pages, zip과 SHA 동일 — 심의 끝날 때까지 갱신 금지). 동결 전 체크리스트는 그 README — 프리셋 제거·gh-pages·영상·동명 재확인이 남았다
-다음       결정 대기 중 Phase 1 잔여(점수 제출·뒤로가기 모달 — UI라 무방, 게임 내용은 건드리지 않는다) → 결정 후 콘솔 앱 정보에 등급 입력 → 콘솔 검수 → Phase 1 잔여(점수 제출·뒤로가기 모달) → GRAC 동결·접수
+앱정보   **준비 완료, 등록은 GRAC 증명서에 막혀 있다** (2026-09-04). 문안 `docs/STORE_COPY.md` · 페이로드
+           `docs/store-payload.json` · 이미지 9장 `assets/store/`(전부 static.toss.im 업로드 완료, 재제작 불필요).
+           `miniapp_update_basic_info`가 `스토어 링크 또는 게임물 등급분류증명서를 등록해주세요.`로 **저장 없이 거부**한다 —
+           게임은 등급 없이 앱정보 등록 자체가 안 된다(플레이북 §5에 정정 기재). 결정 나면 등급 3종만 채워 한 번에 호출.
+           이미지 재제작은 `node tools/store-shots.mjs` 한 방
+다음       결정 대기 중 Phase 1 잔여(점수 제출·뒤로가기 모달 — UI라 무방, 게임 내용은 건드리지 않는다) → 결정 후 콘솔 앱 정보 등록(등급 3종만
+           채우면 됨) → 콘솔 검수 → GRAC 동결·접수
 ```
 
 ## 다음 세션이 할 일
 
+- **GRAC 결정이 나면 앱정보 등록** — `docs/store-payload.json`의 `_등급_수령후_추가`를 채워
+  `miniapp_update_basic_info(workspaceId 72091)` 한 번. 그 전에 콘솔 웹에서 사람이 해야 하는 것 셋:
+  ① 증명서 PDF 업로드(MCP는 png·jpg만) ② 사용 연령 19~99 → 14~99 ③ 내용정보별 게임 화면 4장(출시 직전)
 - **보안 검토 기록** `docs/SECURITY_REVIEW.md` (2026-09-03, 3앱 공통). 수정은 여유 생기면 — N1(워크플로 인젝션)·N2(shot-receiver)·N4(배포 링크 gitignore)는 게임 번들과 무관하니 언제든, N3(광고 지면)는 출시 직전, N5는 리더보드 붙일 때
 
 0. ~~B38 배포~~ 완료(`01a066f4…`, 콘솔 MCP — 절차는 위 "콘솔" 항목). 다음 배포도 같은 길. 로컬 CLI면 `ait:build → ait:deploy → ait:send` 한 묶음. 로컬이 없으면
