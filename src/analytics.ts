@@ -57,11 +57,16 @@ export class Analytics {
     this.platform.track(PREFIX + name, params)
   }
 
-  /** 시작 화면을 지나 판이 시작될 때 — 콘솔 '활성 지표'의 후보다 */
-  gameStart(resumed: boolean, now: number): void {
+  /**
+   * 시작 화면을 지나 판이 시작될 때 — 콘솔 '활성 지표'의 후보다.
+   * 뷰포트 실측값을 함께 싣는다 — 렌더러가 화면 높이에 비례해 배율을 잡으므로
+   * 테스트 컨테이너와 라이브 앱의 헤더 높이가 다르면 "확대돼 보인다".
+   * 감으로 판단하지 않으려고 넣었다(2026-09-04 사용자 보고). 개인 식별 값이 아니다
+   */
+  gameStart(resumed: boolean, now: number, view?: { w: number; h: number; dpr: number; top: number }): void {
     this.startedAt = now
     this.deepSent = false
-    this.send('game_start', { resumed })
+    this.send('game_start', view ? { resumed, vw: view.w, vh: view.h, dpr: view.dpr, top_inset: view.top } : { resumed })
   }
 
   /**

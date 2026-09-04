@@ -54,6 +54,13 @@ if (import.meta.env.DEV) {
 }
 
 /** 뷰포트 실측 — iOS 사파리는 툴바 상태에 따라 innerHeight와 CSS 100%가 어긋나므로 visualViewport를 우선 쓴다 */
+/** 계측용 뷰포트 실측 — 테스트 컨테이너와 라이브 앱의 화면 높이 차이를 눈이 아니라 숫자로 본다 */
+function measureView(): { w: number; h: number; dpr: number; top: number } {
+  const { w, h } = viewportSize()
+  const insets = cancelHostTopInset(platform.safeArea(), screen.height, h)
+  return { w, h, dpr: Math.round((Math.min(window.devicePixelRatio || 1, 2)) * 100) / 100, top: Math.round(insets.top) }
+}
+
 function viewportSize(): { w: number; h: number } {
   const vv = window.visualViewport
   return {
@@ -86,7 +93,7 @@ function restart(): void {
   bestSaved = false
   if (pendingBest > best) best = pendingBest
   renderer.resetTrail()
-  analytics.gameStart(false, performance.now())
+  analytics.gameStart(false, performance.now(), measureView())
 }
 
 /** 이어하기: 리워드 광고 → 보상이면 마지막 앵커에서 재출발. 광고 실패·미보상이면 카드에 남는다 */
@@ -120,7 +127,7 @@ bindPointer(
       else if (hit === 'retry' && !adBusy) restart()
       return
     }
-    if (game.phase === 'ready') analytics.gameStart(false, performance.now())
+    if (game.phase === 'ready') analytics.gameStart(false, performance.now(), measureView())
     if (sonicPendingReady(game) && manualCounted && renderer.hitSuperPrompt(x, y) === 'hide') {
       // 체크박스 토글 — 도전은 시작하지 않는다
       superManual.hide = !superManual.hide
