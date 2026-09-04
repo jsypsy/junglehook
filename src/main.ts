@@ -6,6 +6,7 @@ import { bindPointer } from './input/pointer'
 import { createPlatform } from './platform'
 import { cancelHostTopInset } from './platform/adapter'
 import { Renderer } from './render/renderer'
+import { daysOf } from './core/season'
 import { loadBest, loadSuperManual, saveBest, saveSuperManual } from './storage'
 
 const SIM_STEP = 1 / 120
@@ -168,8 +169,11 @@ function tick(now: number, dt: number): void {
         }
         bestSaved = true
         analytics.gameOver({ score: m, isBest, continued: game.continues > 0, sonic: game.sonic.uses, cause: game.cause ?? 'fall' }, now)
-        // 점수 제출은 플레이가 끝난 뒤, **그 판의 인메모리 거리만** 보낸다 (저장값을 제출하지 않는다 — 보안 검토 C1)
-        if (m > 0) void platform.submitScore(m)
+        // 점수 제출은 플레이가 끝난 뒤, **그 판의 인메모리 값만** 보낸다 (저장값을 제출하지 않는다 — 보안 검토 C1).
+        // ⚠️ 단위는 **일수**다 — 콘솔 리더보드 점수 단위가 「일」이라 미터를 그대로 보내면 숫자가 어긋난다
+        // (B43에서 미터를 보내 "단위는 일인데 수치가 미터" 버그를 냈다). 저장·계측만 미터다(D-014)
+        const submitted = daysOf(m)
+        if (submitted > 0) void platform.submitScore(submitted)
       }
     } else {
       analytics.tick(now, meters(game))
