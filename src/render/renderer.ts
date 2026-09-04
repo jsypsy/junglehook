@@ -1600,50 +1600,59 @@ export class Renderer {
     if (hp > 0) {
       ctx.save()
       ctx.globalAlpha = hp
+      // 버튼은 두 줄이다 — 주 행동 하나(꽉 찬 폭) + 보조 둘(반반).
+      // 세 줄로 늘어놨더니 "장황하다"는 지적을 받았다(2026-09-05, 두 앱 공통)
       const canContinue = ui.continuesLeft > 0
       const btnW = 260 * u
-      const y1 = cardY + cardH + 44 * u
+      const halfW = 124 * u
+      const y1 = cardY + cardH + 40 * u
+      const y2 = y1 + 58 * u
+      const primaryH = 52 * u
+      const secondH = 44 * u
       if (canContinue) {
+        // 「광고」는 문구에 남긴다 — 심사·GRAC 문서에 "버튼 문구에 광고를 명시"로 적었다
         const label = ui.adBusy ? '광고 불러오는 중…' : '광고 보고 이어하기'
         const pulse = ui.adBusy ? 1 : 1 + 0.03 * Math.sin(deadT / 260)
         ctx.save()
         ctx.translate(cx, y1)
         ctx.scale(pulse, pulse)
         if (ui.adBusy) ctx.globalAlpha = hp * 0.7
-        this.chip(-btnW / 2, -26 * u, btnW, 52 * u, COL.player, 4 * u)
+        this.chip(-btnW / 2, -primaryH / 2, btnW, primaryH, COL.player, 4 * u)
         ctx.fillStyle = '#ffffff'
-        ctx.font = `900 ${Math.round(17 * u)}px ${FONT}`
+        ctx.font = `900 ${Math.round(16 * u)}px ${FONT}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         const badge = `${ui.maxContinues - ui.continuesLeft + 1}/${ui.maxContinues}`
         const labelW = ctx.measureText(label).width
-        const badgeW = 34 * u
-        const gap = 8 * u
+        const badgeW = 32 * u
+        const gap = 7 * u
         const total = labelW + (ui.adBusy ? 0 : gap + badgeW)
         ctx.fillText(label, -total / 2 + labelW / 2, 1 * u)
         if (!ui.adBusy) {
           const bx = -total / 2 + labelW + gap
-          this.chip(bx, -11 * u, badgeW, 22 * u, COL.target, 0)
+          this.chip(bx, -10 * u, badgeW, 20 * u, COL.target, 0)
           ctx.fillStyle = COL.ink
-          ctx.font = `800 ${Math.round(12 * u)}px ${FONT}`
+          ctx.font = `800 ${Math.round(11 * u)}px ${FONT}`
           ctx.fillText(badge, bx + badgeW / 2, 1 * u)
         }
         ctx.textBaseline = 'alphabetic'
         ctx.restore()
-        this.deathButtons.continue = { x: cx - btnW / 2, y: y1 - 26 * u, w: btnW, h: 52 * u }
-        const y2 = y1 + 62 * u
-        this.pill('다시 하기', cx, y2, `800 ${Math.round(15 * u)}px ${FONT}`, COL.card, COL.inkSoft, 30 * u, 0, u, true, 44 * u)
-        this.deathButtons.retry = { x: cx - 110 * u, y: y2 - 22 * u, w: 220 * u, h: 44 * u }
-        this.rankButton(cx, y2 + 50 * u, u)
+        this.deathButtons.continue = { x: cx - btnW / 2, y: y1 - primaryH / 2, w: btnW, h: primaryH }
+        this.flatButton('다시 하기', cx - (halfW + 12 * u) / 2, y2, halfW, secondH, COL.card, COL.inkSoft, u)
+        this.deathButtons.retry = { x: cx - (halfW + 12 * u) / 2 - halfW / 2, y: y2 - secondH / 2, w: halfW, h: secondH }
+        this.flatButton('순위', cx + (halfW + 12 * u) / 2, y2, halfW, secondH, COL.card, COL.inkSoft, u)
+        this.deathButtons.rank = { x: cx + (halfW + 12 * u) / 2 - halfW / 2, y: y2 - secondH / 2, w: halfW, h: secondH }
       } else {
+        // 이어하기를 다 쓰면 「다시 하기」가 주 행동이 된다
         ctx.save()
         ctx.translate(cx, y1)
         const pulse = 1 + 0.03 * Math.sin(deadT / 260)
         ctx.scale(pulse, pulse)
-        this.pill('다시 하기', 0, 0, `900 ${Math.round(17 * u)}px ${FONT}`, COL.player, '#ffffff', 34 * u, 4 * u, u, false, 50 * u)
+        this.flatButton('다시 하기', 0, 0, btnW, primaryH, COL.player, '#ffffff', u, 4 * u, 17)
         ctx.restore()
-        this.deathButtons.retry = { x: cx - 110 * u, y: y1 - 25 * u, w: 220 * u, h: 50 * u }
-        this.rankButton(cx, y1 + 54 * u, u)
+        this.deathButtons.retry = { x: cx - btnW / 2, y: y1 - primaryH / 2, w: btnW, h: primaryH }
+        this.flatButton('순위', cx, y2, halfW, secondH, COL.card, COL.inkSoft, u)
+        this.deathButtons.rank = { x: cx - halfW / 2, y: y2 - secondH / 2, w: halfW, h: secondH }
       }
       ctx.restore()
     }
@@ -1927,12 +1936,35 @@ export class Renderer {
 
   /** 글자 칩 (가운데 정렬). height 생략 시 글자 크기에서 계산 */
   /**
-   * 결과 카드의 [순위 보기] — 토스 게임센터 순위표를 연다.
-   * 점수 제출은 판이 끝날 때 main이 하고(그 판의 인메모리 거리만), 이 버튼은 보기만 한다
+   * 폭이 정해진 버튼 — 결과 카드의 두 줄 배치용.
+   * `pill`은 글자 길이만큼 늘어나서 나란히 놓으면 크기가 제각각이 된다
    */
-  private rankButton(cx: number, cy: number, u: number): void {
-    this.pill('순위 보기', cx, cy, `800 ${Math.round(14 * u)}px ${FONT}`, COL.card, COL.inkSoft, 26 * u, 0, u, true, 38 * u)
-    this.deathButtons.rank = { x: cx - 90 * u, y: cy - 19 * u, w: 180 * u, h: 38 * u }
+  private flatButton(
+    text: string,
+    cx: number,
+    cy: number,
+    w: number,
+    h: number,
+    fill: string,
+    color: string,
+    u: number,
+    shadow = 0,
+    fontPx = 15,
+  ): void {
+    const ctx = this.ctx
+    this.chip(cx - w / 2, cy - h / 2, w, h, fill, shadow)
+    if (shadow === 0) {
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = 2 * u
+      this.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2)
+      ctx.stroke()
+    }
+    ctx.fillStyle = color
+    ctx.font = `${shadow > 0 ? 900 : 800} ${Math.round(fontPx * u)}px ${FONT}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, cx, cy + 1 * u)
+    ctx.textBaseline = 'alphabetic'
   }
 
   private pill(
