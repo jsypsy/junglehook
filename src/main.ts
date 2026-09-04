@@ -124,6 +124,7 @@ bindPointer(
       if (performance.now() - deadAt < RESTART_LOCK * 1000) return
       const hit = renderer.hitDeathButton(x, y)
       if (hit === 'continue') void tryContinue()
+      else if (hit === 'rank') void platform.openLeaderboard()
       else if (hit === 'retry' && !adBusy) restart()
       return
     }
@@ -167,6 +168,8 @@ function tick(now: number, dt: number): void {
         }
         bestSaved = true
         analytics.gameOver({ score: m, isBest, continued: game.continues > 0, sonic: game.sonic.uses, cause: game.cause ?? 'fall' }, now)
+        // 점수 제출은 플레이가 끝난 뒤, **그 판의 인메모리 거리만** 보낸다 (저장값을 제출하지 않는다 — 보안 검토 C1)
+        if (m > 0) void platform.submitScore(m)
       }
     } else {
       analytics.tick(now, meters(game))

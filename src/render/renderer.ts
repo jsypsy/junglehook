@@ -157,7 +157,7 @@ export class Renderer {
   private chanceAt = -1e9
   private wasChance = false
   /** 결과 카드 버튼 영역 (화면 px) — 보이는 동안만 채워진다 */
-  private deathButtons: { continue: Rect | null; retry: Rect | null } = { continue: null, retry: null }
+  private deathButtons: { continue: Rect | null; retry: Rect | null; rank: Rect | null } = { continue: null, retry: null, rank: null }
   /** 슈퍼 매뉴얼 카드의 "다시 안 보기" 영역 — 보이는 동안만 */
   private superHideBox: Rect | null = null
   /** 슈퍼 도전 대기가 시작된 시각 (카드 등장 애니메이션 기준) */
@@ -177,10 +177,11 @@ export class Renderer {
   }
 
   /** 결과 카드의 버튼 히트테스트 (화면 px) */
-  hitDeathButton(x: number, y: number): 'continue' | 'retry' | null {
+  hitDeathButton(x: number, y: number): 'continue' | 'retry' | 'rank' | null {
     const inside = (r: Rect | null) => !!r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h
     if (inside(this.deathButtons.continue)) return 'continue'
     if (inside(this.deathButtons.retry)) return 'retry'
+    if (inside(this.deathButtons.rank)) return 'rank'
     return null
   }
 
@@ -202,7 +203,7 @@ export class Renderer {
     if (g.phase === 'dead' && !this.death) this.death = this.startDeath(g, now)
     if (g.phase !== 'dead') {
       this.death = null
-      this.deathButtons = { continue: null, retry: null }
+      this.deathButtons = { continue: null, retry: null, rank: null }
     }
     const dead = this.death
     const deadT = dead ? now - dead.t0 : 0
@@ -1595,7 +1596,7 @@ export class Renderer {
 
     // 버튼: 이어하기(광고)가 남았으면 주황 주 버튼 + 흰 "다시 하기", 다 썼으면 "다시 하기"만 주황
     const hp = clamp01((deadT - 1500) / 300)
-    this.deathButtons = { continue: null, retry: null }
+    this.deathButtons = { continue: null, retry: null, rank: null }
     if (hp > 0) {
       ctx.save()
       ctx.globalAlpha = hp
@@ -1633,6 +1634,7 @@ export class Renderer {
         const y2 = y1 + 62 * u
         this.pill('다시 하기', cx, y2, `800 ${Math.round(15 * u)}px ${FONT}`, COL.card, COL.inkSoft, 30 * u, 0, u, true, 44 * u)
         this.deathButtons.retry = { x: cx - 110 * u, y: y2 - 22 * u, w: 220 * u, h: 44 * u }
+        this.rankButton(cx, y2 + 50 * u, u)
       } else {
         ctx.save()
         ctx.translate(cx, y1)
@@ -1641,6 +1643,7 @@ export class Renderer {
         this.pill('다시 하기', 0, 0, `900 ${Math.round(17 * u)}px ${FONT}`, COL.player, '#ffffff', 34 * u, 4 * u, u, false, 50 * u)
         ctx.restore()
         this.deathButtons.retry = { x: cx - 110 * u, y: y1 - 25 * u, w: 220 * u, h: 50 * u }
+        this.rankButton(cx, y1 + 54 * u, u)
       }
       ctx.restore()
     }
@@ -1923,6 +1926,15 @@ export class Renderer {
   }
 
   /** 글자 칩 (가운데 정렬). height 생략 시 글자 크기에서 계산 */
+  /**
+   * 결과 카드의 [순위 보기] — 토스 게임센터 순위표를 연다.
+   * 점수 제출은 판이 끝날 때 main이 하고(그 판의 인메모리 거리만), 이 버튼은 보기만 한다
+   */
+  private rankButton(cx: number, cy: number, u: number): void {
+    this.pill('순위 보기', cx, cy, `800 ${Math.round(14 * u)}px ${FONT}`, COL.card, COL.inkSoft, 26 * u, 0, u, true, 38 * u)
+    this.deathButtons.rank = { x: cx - 90 * u, y: cy - 19 * u, w: 180 * u, h: 38 * u }
+  }
+
   private pill(
     text: string,
     cx: number,
