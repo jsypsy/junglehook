@@ -1638,9 +1638,9 @@ export class Renderer {
         ctx.textBaseline = 'alphabetic'
         ctx.restore()
         this.deathButtons.continue = { x: cx - btnW / 2, y: y1 - primaryH / 2, w: btnW, h: primaryH }
-        this.flatButton('다시 하기', cx - (halfW + 12 * u) / 2, y2, halfW, secondH, COL.card, COL.inkSoft, u)
+        this.flatButton('다시', cx - (halfW + 12 * u) / 2, y2, halfW, secondH, COL.card, COL.inkSoft, u, 0, 15, 'replay')
         this.deathButtons.retry = { x: cx - (halfW + 12 * u) / 2 - halfW / 2, y: y2 - secondH / 2, w: halfW, h: secondH }
-        this.flatButton('순위', cx + (halfW + 12 * u) / 2, y2, halfW, secondH, COL.card, COL.inkSoft, u)
+        this.flatButton('순위', cx + (halfW + 12 * u) / 2, y2, halfW, secondH, COL.card, COL.inkSoft, u, 0, 15, 'rank')
         this.deathButtons.rank = { x: cx + (halfW + 12 * u) / 2 - halfW / 2, y: y2 - secondH / 2, w: halfW, h: secondH }
       } else {
         // 이어하기를 다 쓰면 「다시 하기」가 주 행동이 된다
@@ -1651,7 +1651,7 @@ export class Renderer {
         this.flatButton('다시 하기', 0, 0, btnW, primaryH, COL.player, '#ffffff', u, 4 * u, 17)
         ctx.restore()
         this.deathButtons.retry = { x: cx - btnW / 2, y: y1 - primaryH / 2, w: btnW, h: primaryH }
-        this.flatButton('순위', cx, y2, halfW, secondH, COL.card, COL.inkSoft, u)
+        this.flatButton('순위', cx, y2, halfW, secondH, COL.card, COL.inkSoft, u, 0, 15, 'rank')
         this.deathButtons.rank = { x: cx - halfW / 2, y: y2 - secondH / 2, w: halfW, h: secondH }
       }
       ctx.restore()
@@ -1950,6 +1950,7 @@ export class Renderer {
     u: number,
     shadow = 0,
     fontPx = 15,
+    icon?: 'replay' | 'rank',
   ): void {
     const ctx = this.ctx
     this.chip(cx - w / 2, cy - h / 2, w, h, fill, shadow)
@@ -1959,12 +1960,72 @@ export class Renderer {
       this.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2)
       ctx.stroke()
     }
-    ctx.fillStyle = color
     ctx.font = `${shadow > 0 ? 900 : 800} ${Math.round(fontPx * u)}px ${FONT}`
-    ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(text, cx, cy + 1 * u)
+    if (icon) {
+      // 아이콘 + 글자를 한 덩어리로 보고 가운데 맞춘다
+      const iconS = 18 * u
+      const gap = 6 * u
+      const textW = ctx.measureText(text).width
+      const left = cx - (iconS + gap + textW) / 2
+      if (icon === 'replay') this.iconReplay(left + iconS / 2, cy, iconS / 2, u)
+      else this.iconRank(left + iconS / 2, cy, iconS)
+      ctx.fillStyle = color
+      ctx.textAlign = 'left'
+      ctx.fillText(text, left + iconS + gap, cy + 1 * u)
+    } else {
+      ctx.fillStyle = color
+      ctx.textAlign = 'center'
+      ctx.fillText(text, cx, cy + 1 * u)
+    }
+    ctx.textAlign = 'center'
     ctx.textBaseline = 'alphabetic'
+  }
+
+  /** 되감기 화살표 — 열린 원호 + 끝의 삼각 화살촉 */
+  private iconReplay(cx: number, cy: number, r: number, u: number): void {
+    const ctx = this.ctx
+    const end = -Math.PI * 0.35
+    ctx.strokeStyle = COL.ink
+    ctx.lineWidth = 2.4 * u
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.arc(cx, cy, r * 0.82, end + Math.PI * 0.45, end + Math.PI * 2)
+    ctx.stroke()
+    ctx.lineCap = 'butt'
+    const px = cx + Math.cos(end) * r * 0.82
+    const py = cy + Math.sin(end) * r * 0.82
+    const tx = Math.cos(end + Math.PI / 2)
+    const ty = Math.sin(end + Math.PI / 2)
+    const nx = Math.cos(end)
+    const ny = Math.sin(end)
+    ctx.beginPath()
+    ctx.moveTo(px + tx * r * 0.62, py + ty * r * 0.62)
+    ctx.lineTo(px + nx * r * 0.5, py + ny * r * 0.5)
+    ctx.lineTo(px - nx * r * 0.5, py - ny * r * 0.5)
+    ctx.closePath()
+    ctx.fillStyle = COL.ink
+    ctx.fill()
+  }
+
+  /** 시상대 — 블록 세 칸(1위 가운데). 높이높이와 같은 아이콘을 쓴다 */
+  private iconRank(cx: number, cy: number, s: number): void {
+    const ctx = this.ctx
+    const k = s / 24
+    const bar = (x: number, y: number, w: number, h: number, color: string) => {
+      const rx = cx + (x - 12) * k
+      const ry = cy + (y - 12.5) * k
+      this.roundRect(rx, ry, w * k, h * k, 1.6 * k)
+      ctx.fillStyle = color
+      ctx.fill()
+      ctx.strokeStyle = COL.ink
+      ctx.lineWidth = Math.max(1.2, 2.2 * k)
+      ctx.lineJoin = 'round'
+      ctx.stroke()
+    }
+    bar(2.4, 11, 6.6, 8, '#4fc3f7')
+    bar(15.6, 13.4, 6, 5.6, '#aed581')
+    bar(9, 6, 6.6, 13, COL.target)
   }
 
   private pill(
