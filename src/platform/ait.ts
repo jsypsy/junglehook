@@ -34,7 +34,7 @@ import type {
  * ⚠️ **실 ID를 채운 뒤에는 광고를 반복 시청하지 말 것** — 인위적 노출은
  * 어뷰징으로 걸리고, `abuseLevel`이 붙으면 지면이나 미니앱 전체가 제한된다
  */
-const AD_GROUP_ID: string = ''
+const AD_GROUP_ID: string = 'ait.v2.live.5fb692accf9c4248'
 
 /**
  * 공유 링크가 가리킬 미니앱 딥링크. `Share.createLink`가 이걸 토스에서 열리는
